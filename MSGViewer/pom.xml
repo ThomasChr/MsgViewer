@@ -100,7 +100,7 @@
                                 <mainClass>net.sourceforge.MSGViewer.ModuleLauncher</mainClass>
                                 <preCp>anything</preCp>
                             </classPath>
-                            <icon>.\src\main\resources\icons\rg1024_yellow_mail.png"</icon>
+                            <icon>./src/main/resources/icons/rg1024_yellow_mail.png"</icon>
                             <jre>>
                                 <path>./jre</path>
                             </jre>
