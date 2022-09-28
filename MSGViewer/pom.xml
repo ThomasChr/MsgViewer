@@ -100,7 +100,7 @@
                                 <mainClass>net.sourceforge.MSGViewer.ModuleLauncher</mainClass>
                                 <preCp>anything</preCp>
                             </classPath>
-                            <icon>${project.basedir}/src/main/resources/icons/rg1024_yellow_mail.png</icon>
+                            <icon>${project.basedir}\src\main\resources\icons\mail_new24.ico</icon>
                             <jre>>
                                 <path>./jre</path>
                             </jre>
