@@ -19,7 +19,7 @@ steps:
   - script: mkdir $(Build.Repository.LocalPath)/output
     displayName: 'Make Output Directory'
 
-  - script: cp $(Pipeline.Workspace)/s/MSGViewer/target/msgviewer.exe $(Build.Repository.LocalPath)/output/msgviewer.exe
+  - script: cp $(Pipeline.Workspace)/s/MSGViewer/target/cdMsgViewer.exe $(Build.Repository.LocalPath)/output/cdMsgViewer.exe
     displayName: 'Copy .exe file to output'
 
   - script: cp -R $(Pipeline.Workspace)/s/cimdata/jre $(Build.Repository.LocalPath)/output/
