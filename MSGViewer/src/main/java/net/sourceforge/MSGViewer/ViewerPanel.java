@@ -52,33 +52,33 @@ import java.util.regex.Pattern;
 import static at.redeye.FrameWork.base.BaseDialog.logger;
 import static java.util.stream.Collectors.joining;
 import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.apache.commons.lang3.StringUtils.isNotEmpty;
 
 public class ViewerPanel extends JPanel implements Printable, MessageView {
 
     public static final String FILE_NAME_PROPERTY = "file_name";
     private static final Pattern RTF_FONT_SIZE_PATTERN = Pattern.compile("(\\\\fs)([0-9]+)");
+    private final BaseDialog parent;
+    private final Root root;
+    private final ViewerHelper helper;
+    private final AttachmentRepository attachmentRepository;
     private Message message;
-    private ViewerHelper helper;
-    private Root root;
     private String file_name;
     private OpenNewMailInterface open_new_mail_handler;
-    private BaseDialog parent;
 
     private final ExecutorService thread_pool = Executors.newCachedThreadPool();
     private int wating_thread_pool_counter;
-    private AttachmentRepository attachmentRepository;
 
-    public ViewerPanel() {
-        initComponents();
-        new DropTarget(header, DnDConstants.ACTION_COPY_OR_MOVE, new EditorDropTarget(this), true, null);
-        new DropTarget(body, DnDConstants.ACTION_COPY_OR_MOVE, new EditorDropTarget(this), true, null);
-    }
-
-    public void setRoot(Root root, BaseDialog parent) {
+    public ViewerPanel(BaseDialog parent) {
         this.parent = parent;
-        this.root = root;
+        root = parent.getRoot();
         helper = new ViewerHelper(root);
         attachmentRepository = new AttachmentRepository(root);
+
+        initComponents();
+
+        new DropTarget(header, DnDConstants.ACTION_COPY_OR_MOVE, new EditorDropTarget(this), true, null);
+        new DropTarget(body, DnDConstants.ACTION_COPY_OR_MOVE, new EditorDropTarget(this), true, null);
 
         boolean rtfFormat = StringUtils.isYes(root.getSetup().getLocalConfig("RTFFormat", "yes"));
         jRRTF.setSelected(rtfFormat);
@@ -332,7 +332,7 @@ public class ViewerPanel extends JPanel implements Printable, MessageView {
     }
 
     private Content bodyText() {
-        if (jRRTF.isSelected() && message.getBodyRTF() != null && !message.getBodyRTF().isEmpty()) {
+        if (jRRTF.isSelected() && isNotEmpty(message.getBodyRTF())) {
             if (message.getBodyRTF().contains("\\fromhtml")) {
                 return new AutoMBox<>(MainWin.class.getName(), () -> {
                     logger.info("extracting HTML data from RTF Code");
