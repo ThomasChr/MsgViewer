@@ -92,6 +92,7 @@
                             <goal>launch4j</goal>
                         </goals>
                         <configuration>
+                            <cmdLine>-starttextview</cmdLine>
                             <headerType>gui</headerType>
                             <jar>${project.build.directory}/msgviewer.jar</jar>
                             <outfile>${project.build.directory}/cdMsgViewer.exe</outfile>
