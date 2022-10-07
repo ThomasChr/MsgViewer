@@ -1,42 +1,79 @@
 trigger:
   - cimdata
 
-pool:
-  vmImage: 'ubuntu-latest'
+stages:
+- stage: Linux
+  pool:
+    vmImage: 'ubuntu-latest'
+  jobs:
+    - job: Build
+      steps:
+        - task: Maven@3
+          inputs:
+            mavenPomFile: 'pom.xml'
+            publishJUnitResults: false
+            mavenOptions: '-Xmx3072m -Dmaven.test.failure.ignore=true'
+            javaHomeOption: 'JDKVersion'
+            jdkArchitectureOption: 'x64'
 
-steps:
-  - task: Maven@3
-    inputs:
-      mavenPomFile: 'pom.xml'
-      publishJUnitResults: false
-      mavenOptions: '-Xmx3072m -Dmaven.test.failure.ignore=true'
-      javaHomeOption: 'JDKVersion'
-      jdkArchitectureOption: 'x64'
+        - script: ls -laR $(Pipeline.Workspace)
+          displayName: 'Display Workspace Files after Maven run'
 
-  - script: ls -laR $(Pipeline.Workspace)
-    displayName: 'Display Workspace Files after Maven run'
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publishing jar Artifact'
+          inputs:
+            PathtoPublish: '$(Pipeline.Workspace)/s/MSGViewer/target/msgviewer.jar'
+            ArtifactName: 'msgviewer jar'
+            publishLocation: 'Container'
 
-  - script: mkdir $(Build.Repository.LocalPath)/output
-    displayName: 'Make Output Directory'
+        - script: mkdir $(Build.Repository.LocalPath)/output
+          displayName: 'Make Output Directory'
 
-  - script: cp $(Pipeline.Workspace)/s/MSGViewer/target/cdMsgViewer.exe $(Build.Repository.LocalPath)/output/cdMsgViewer.exe
-    displayName: 'Copy .exe file to output'
+        - script: cp $(Pipeline.Workspace)/s/MSGViewer/target/cdMsgViewer.exe $(Build.Repository.LocalPath)/output/cdMsgViewer.exe
+          displayName: 'Copy .exe file to output'
 
-  - script: cp -R $(Pipeline.Workspace)/s/cimdata/jre $(Build.Repository.LocalPath)/output/
-    displayName: 'Copy jre from cimdata folder file to output'
+        - script: cp -R $(Pipeline.Workspace)/s/cimdata/jre $(Build.Repository.LocalPath)/output/
+          displayName: 'Copy jre from cimdata folder file to output'
 
-  - task: ArchiveFiles@2
-    displayName: 'Archive output artifacts'
-    inputs:
-      rootFolderOrFile: 'output'
-      includeRootFolder: false
-      archiveType: zip
-      archiveFile: $(Build.ArtifactStagingDirectory)/msgviewer.zip
-      replaceExistingArchive: false
+        - task: ArchiveFiles@2
+          displayName: 'Archive output artifacts'
+          inputs:
+            rootFolderOrFile: 'output'
+            includeRootFolder: false
+            archiveType: zip
+            archiveFile: $(Build.ArtifactStagingDirectory)/msgviewer.zip
+            replaceExistingArchive: false
 
-  - task: PublishBuildArtifacts@1
-    displayName: 'Publishing Artifacts'
-    inputs:
-      PathtoPublish: '$(Build.ArtifactStagingDirectory)/msgviewer.zip'
-      ArtifactName: 'msgviewer'
-      publishLocation: 'Container'
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publishing zip Artifact'
+          inputs:
+            PathtoPublish: '$(Build.ArtifactStagingDirectory)/msgviewer.zip'
+            ArtifactName: 'msgviewer zip'
+            publishLocation: 'Container'
+
+- stage: Windows
+  pool:
+    vmImage: 'windows-latest'
+  jobs:
+    - job: Build
+      steps:
+        - script: start /WAIT $(Build.Repository.LocalPath)\MsgViewer_setup\NSIS_installer\nsis-3.08-setup.exe /S
+          displayName: 'Installing NSIS Installer'
+
+        - script: start /WAIT $(Build.Repository.LocalPath)\MsgViewer_setup\7zip\7z2201.exe /S
+          displayName: 'Installing 7zip'
+
+#        - script: copy $(Build.Repository.LocalPath)\cdCrystalLibrary\bin\x86\Release\cdCrystalLibrary.dll $(Build.Repository.LocalPath)\cr13_setup\x86\files
+#          displayName: 'Copying x86 dll to Setup Directory'
+#
+#        - script: |
+#            cd $(Build.Repository.LocalPath)\cr13_setup\x86\build
+#            start /WAIT cr13_create_setup_x86.cmd
+#          displayName: 'Building CR13 Setup for x86'
+#
+#        - task: PublishBuildArtifacts@1
+#          displayName: 'Publishing Setup Artifacts x86'
+#          inputs:
+#            PathtoPublish: '$(Build.Repository.LocalPath)\cr13_setup\x86\bin\release\cr13_setup_x86.exe'
+#            ArtifactName: 'x86_setup'
+#            publishLocation: 'Container'#
