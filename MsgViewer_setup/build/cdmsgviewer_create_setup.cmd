@@ -1,5 +1,5 @@
-REM @ECHO OFF
-REM --- FUNKTION: ERSTELLT DEFAULTMÄßIG BASIC+HOME-EDITION!
+@ECHO OFF
+REM --- FUNKTION: Erstellt Setup fuer MsgViewer
 REM ---
 SET PROGRAM_X86=C:\PROGRAM FILES (X86)
 SET SRC_DIR=..\SOURCE
@@ -23,7 +23,7 @@ IF "%NSISDIR%"=="" SET NSISDIR=%PROGRAM_X86%\NSIS
 IF "%NSISCONFDIR%"=="" SET NSISCONFDIR=%NSISDIR%
 IF "%NSIS_EXE%"=="" SET NSIS_EXE=%NSISDIR%\makensis.exe
 SET CURDIR=%~dp0
-REM --- Standard-Pfad nach Installation (momentan nicht mehr benötigt):
+REM --- Standard-Pfad nach Installation (momentan nicht mehr benoetigt):
 REM IF NOT EXIST "%NSIS_EXE%" SET NSIS_EXE=C:\Program Files (x86)\NSIS\makensis.exe
 
 IF NOT EXIST "%NSIS_EXE%" (
@@ -38,7 +38,7 @@ cls
 
 call :SETUP_START
 
-REM --- Verzeichnis öffnen
+REM --- Verzeichnis oeffnen
 IF "%NOOPEN_EXPLORER%" NEQ "1" start explorer /e, ..\bin\release
 GOTO :ENDE
 
