@@ -57,23 +57,13 @@ stages:
   jobs:
     - job: Build
       steps:
-        - script: start /WAIT $(Build.Repository.LocalPath)\MsgViewer_setup\NSIS_installer\nsis-3.08-setup.exe /S
-          displayName: 'Installing NSIS Installer'
+        - script: |
+            start /WAIT $(Build.Repository.LocalPath)\MsgViewer_setup\build_setup.cmd
+          displayName: 'Building Setup for cdMsgViewer'
 
-        - script: start /WAIT $(Build.Repository.LocalPath)\MsgViewer_setup\7zip\7z2201.exe /S
-          displayName: 'Installing 7zip'
-
-#        - script: copy $(Build.Repository.LocalPath)\cdCrystalLibrary\bin\x86\Release\cdCrystalLibrary.dll $(Build.Repository.LocalPath)\cr13_setup\x86\files
-#          displayName: 'Copying x86 dll to Setup Directory'
-#
-#        - script: |
-#            cd $(Build.Repository.LocalPath)\cr13_setup\x86\build
-#            start /WAIT cr13_create_setup_x86.cmd
-#          displayName: 'Building CR13 Setup for x86'
-#
-#        - task: PublishBuildArtifacts@1
-#          displayName: 'Publishing Setup Artifacts x86'
-#          inputs:
-#            PathtoPublish: '$(Build.Repository.LocalPath)\cr13_setup\x86\bin\release\cr13_setup_x86.exe'
-#            ArtifactName: 'x86_setup'
-#            publishLocation: 'Container'#
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publishing Setup Artifacts'
+          inputs:
+            PathtoPublish: '$(Build.Repository.LocalPath)\MsgViewer_setup\bin\release\cdMsgViewer_setup.exe'
+            ArtifactName: 'cdMsgViewer_setup'
+            publishLocation: 'Container'#
