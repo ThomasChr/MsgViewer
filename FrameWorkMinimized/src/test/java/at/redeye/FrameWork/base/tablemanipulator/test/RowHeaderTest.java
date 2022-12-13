@@ -2,21 +2,21 @@ package at.redeye.FrameWork.base.tablemanipulator.test;
 
 import at.redeye.FrameWork.base.AutoMBox;
 import at.redeye.FrameWork.base.BaseDialog;
-import at.redeye.FrameWork.base.LocalRoot;
 import at.redeye.FrameWork.base.Root;
 import at.redeye.FrameWork.base.prm.bindtypes.DBConfig;
 import at.redeye.FrameWork.base.tablemanipulator.TableManipulator;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
+import java.util.Collection;
 import java.util.Vector;
 
 public class RowHeaderTest extends BaseDialog {
 
-    int i;
-    TableManipulator tm;
+    private int i;
+    private final TableManipulator tm;
 
-    public RowHeaderTest(Root root) {
+    private RowHeaderTest(Root root) {
         super(root, "Table RowHeader Test");
 
         initComponents();
@@ -40,7 +40,7 @@ public class RowHeaderTest extends BaseDialog {
 
         tm.setEditable(config.name);
 
-        Vector<DBConfig> data = new Vector<>();
+        Collection<DBConfig> data = new Vector<>();
 
         for (i = 0; i < 19; i++) {
             DBConfig c = new DBConfig();
@@ -54,9 +54,8 @@ public class RowHeaderTest extends BaseDialog {
         }
 
         tm.prepareTable();
-
         tm.addAll(data);
-
+        tm.showRowHeader(jCShowRowHeader.isSelected());
         tm.autoResize();
     }
 
@@ -187,25 +186,17 @@ public class RowHeaderTest extends BaseDialog {
         changeStyle(className);
     }
 
-    final void changeStyle(final String className) {
+    private void changeStyle(final String className) {
         new AutoMBox<>(RowHeaderTest.class.getName(), () -> {
             UIManager.setLookAndFeel(className);
-            root.closeAllWindowsNoAppExit();
-            run();
+            SwingUtilities.updateComponentTreeUI(this);
         }).run();
     }
-
-    private static Root main_root;
 
     // FIXME make me a JUnit test
     public static void main(String[] args) {
 
-        main_root = new LocalRoot("TT");
-
-        run();
-    }
-
-    private static void run() {
+        Root main_root = new Root("TT");
         new RowHeaderTest(main_root).setVisible(true);
     }
 

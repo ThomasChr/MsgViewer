@@ -2,7 +2,7 @@ package net.sourceforge.MSGViewer;
 
 import at.redeye.FrameWork.base.BaseModuleLauncher;
 import at.redeye.FrameWork.base.FrameWorkConfigDefinitions;
-import at.redeye.FrameWork.base.LocalRoot;
+import at.redeye.FrameWork.base.Root;
 import at.redeye.FrameWork.base.Setup;
 import at.redeye.FrameWork.widgets.StartupWindow;
 import org.apache.logging.log4j.Level;
@@ -17,7 +17,7 @@ public class ModuleLauncher extends BaseModuleLauncher {
 
         BaseConfigureLogging(Level.ERROR);
 
-        root = new LocalRoot("MSGViewer");
+        root = new Root("MSGViewer");
         root.setStartupArgs(args);
         root.setBaseLanguage("en");
         root.setDefaultLanguage("en");
@@ -114,7 +114,7 @@ public class ModuleLauncher extends BaseModuleLauncher {
 
     private void registerPlugins() {
         if (Setup.is_win_system()) {
-            root.registerPlugin(new at.redeye.Plugins.ShellExec.Plugin());
+            root.getPlugins().register(new at.redeye.Plugins.ShellExec.Plugin());
         }
     }
 

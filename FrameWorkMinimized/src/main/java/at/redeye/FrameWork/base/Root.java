@@ -1,17 +1,20 @@
 package at.redeye.FrameWork.base;
 
-import at.redeye.FrameWork.Plugin.Plugin;
-import at.redeye.FrameWork.base.dll_cache.DLLExtractor;
+import at.redeye.FrameWork.base.translation.MLHelper;
 import at.redeye.FrameWork.utilities.Storage;
 
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Locale;
 
-public abstract class Root {
-
-    protected final String app_name;
+public class Root {
+    private static Root static_root;
+    private final String app_name;
     private final String app_title;
+    private final Setup setup;
+    private final Plugins plugins;
+    private final Path storage;
+    private final Dialogs dialogs;
+    private final MLHelper ml_helper;
 
     /**
      * language most of the aplication is programmed in
@@ -48,60 +51,51 @@ public abstract class Root {
      */
     private String display_language;
 
-    private static Root static_root;
-    private final Path storage;
     private String[] startupArgs;
+
+    public Root(String app_name) {
+        this(app_name, app_name);
+    }
 
     public Root(String app_name, String app_title) {
         this.app_name = app_name;
         this.app_title = app_title;
         static_root = this;
+        setup = new Setup(app_name);
+        plugins = new Plugins(app_name);
         storage = Storage.getEphemeralStorage(this.app_name);
+        dialogs = new Dialogs(this);
+        ml_helper = new MLHelper(this);
     }
 
-    public abstract Setup getSetup();
+    public Setup getSetup() {
+        return setup;
+    }
 
-    public abstract boolean saveSetup();
+    public void saveSetup() {
+        ml_helper.saveMissingProps();
+        setup.saveProps();
+    }
 
-    public abstract void setDBConnection( DBConnection con );
-    public abstract DBConnection getDBConnection();
+    public Dialogs getDialogs() {
+        return dialogs;
+    }
 
-    public void informWindowOpened( BaseDialogBase dlg ) {}
-    public void informWindowClosed( BaseDialogBase dlg ) {}
-    public void closeAllWindowsExceptThisOne( BaseDialogBase dlg ) {}
-    public void closeAllWindowsNoAppExit() {}
+    void appExit() {
+        saveSetup();
+        System.exit(0);
+    }
 
-    public void appExit() {}
-
-    public String getAppName()
-    {
+    public String getAppName() {
         return app_name;
     }
 
-    public String getAppTitle()
-    {
+    public String getAppTitle() {
         return app_title;
     }
 
-    public void addDllExtractorToCache( DLLExtractor extractor )
-    {
-
-    }
-
-    public void registerPlugin( Plugin plugin )
-    {
-
-    }
-
-    public List<Plugin> getRegisteredPlugins()
-    {
-        return List.of();
-    }
-
-
-    public Plugin getPlugin(String name)
-    {
-        return null;
+    public Plugins getPlugins() {
+        return plugins;
     }
 
     /**
@@ -111,8 +105,7 @@ public abstract class Root {
      * <p>
      * This is set to "en" by default.
      */
-    public void setBaseLanguage( String language )
-    {
+    public void setBaseLanguage(String language) {
         base_language = language;
     }
 
@@ -175,6 +168,7 @@ public abstract class Root {
     public void setLanguageTranslationResourcePath( String path )
     {
         language_resource_path = path;
+        ml_helper.autoLoadCurrentLocale();
     }
 
     /**
@@ -210,24 +204,31 @@ public abstract class Root {
      * eg: /at/redeye/Zeiterfassung/resources/translations
      * or null if not set
      */
-    public String getLanguageTranslationResourcePath()
-    {
+    public String getLanguageTranslationResourcePath() {
         return language_resource_path;
     }
 
-    public abstract String MlM( String message );
+    public String MlM(String message) {
+        return ml_helper.MlM(message);
+    }
 
     /**
      * load a MlM file for a spacific class
+     *
      * @param impl_locale the locale the class was originaly implemented
-     * eg "de" for german
+     *                    eg "de" for german
      */
-    public abstract void loadMlM4Class( Object obj, String impl_locale );
+    public void loadMlM4Class(Object obj, String impl_locale) {
+        ml_helper.autoLoadFile4Class(obj, getDisplayLanguage(), impl_locale);
+    }
 
     /**
      * load a MlM file for a spacific class
      */
-    public abstract void loadMlM4ClassName(String name, String string);
+    public void loadMlM4ClassName(String name, String impl_locale) {
+        ml_helper.autoLoadFile4ClassName(name, getDisplayLanguage(), impl_locale);
+
+    }
 
     /**
      * only use this in case of emergency
