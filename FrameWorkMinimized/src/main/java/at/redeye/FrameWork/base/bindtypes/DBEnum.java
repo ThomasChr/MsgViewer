@@ -1,7 +1,6 @@
 package at.redeye.FrameWork.base.bindtypes;
 
 import at.redeye.FrameWork.base.Root;
-import at.redeye.SqlDBInterface.SqlDBIO.impl.DBDataType;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,8 +16,6 @@ public class DBEnum<T extends Enum<T>> extends DBValue {
             this.type = type;
             this.value = value;
         }
-
-        public abstract EnumHandler<T> getNewOne();
 
         private boolean setValue(String val) {
             try {
@@ -51,16 +48,6 @@ public class DBEnum<T extends Enum<T>> extends DBValue {
     }
 
     @Override
-    public DBDataType getDBType() {
-        return DBDataType.DB_TYPE_STRING;
-    }
-
-    @Override
-    public void loadFromDB(Object obj) {
-        handler.setValue((String)obj);
-    }
-
-    @Override
     public void loadFromString(String s) {
         handler.setValue(delocalize(s));
     }
@@ -68,24 +55,6 @@ public class DBEnum<T extends Enum<T>> extends DBValue {
     @Override
     public boolean acceptString(String s) {
        return handler.setValue(delocalize(s));
-    }
-
-    @Override
-    public void loadFromCopy(Object obj) {
-       handler = handler.getNewOne();
-       handler.setValue(delocalize((String)obj));
-    }
-
-    @Override
-    public String getValue() {
-        return handler.getValue();
-    }
-
-    @Override
-    public DBValue getCopy() {
-        DBEnum<?> copy = new DBEnum<>(name, handler.getNewOne());
-        copy.handler.setValue(handler.getValue());
-        return copy;
     }
 
     @Override
