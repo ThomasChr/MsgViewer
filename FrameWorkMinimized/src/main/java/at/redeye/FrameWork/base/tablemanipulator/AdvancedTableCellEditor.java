@@ -1,12 +1,10 @@
 package at.redeye.FrameWork.base.tablemanipulator;
 
 import at.redeye.FrameWork.base.bindtypes.DBDateTime;
-import at.redeye.FrameWork.base.bindtypes.DBInteger;
 import at.redeye.FrameWork.base.bindtypes.DBString;
 import at.redeye.FrameWork.base.bindtypes.DBValue;
 import at.redeye.FrameWork.widgets.AutoCompleteTextField;
 import at.redeye.FrameWork.widgets.documentfields.DocumentFieldDateTime;
-import at.redeye.FrameWork.widgets.documentfields.DocumentFieldInteger;
 import at.redeye.FrameWork.widgets.documentfields.DocumentFieldLimit;
 
 import javax.swing.*;
@@ -53,34 +51,10 @@ public class AdvancedTableCellEditor extends AbstractCellEditor implements Table
 
         System.out.println("comp size: " + component.getPreferredSize());
 
-        if (tabledesign.colls.get(last_col).validator != null) {
-            if (value instanceof DBValue) {
-                String sc = tabledesign.colls.get(last_col).validator.formatData(value);
-
-                if (sc != null) {
-                    component.setBorder(new LineBorder(Color.BLACK));
-                    component.setText(sc);
-                    return component;
-                }
-                component.setBorder(new LineBorder(Color.RED));
-                return component;
-            }
-
-            component.setText((String) value);
-            return component;
-
-        }
         if (current_value instanceof DBValue) {
-
-
             if (current_value instanceof DBString) {
                 DBString s = (DBString) current_value;
                 component.setDocument(new DocumentFieldLimit(s.getMaxLen()));
-
-            } else if (current_value instanceof DBInteger) {
-
-                component.setDocument(new DocumentFieldInteger());
-
             } else if (current_value instanceof DBDateTime) {
 
                 component.setDocument(new DocumentFieldDateTime());
@@ -112,37 +86,15 @@ public class AdvancedTableCellEditor extends AbstractCellEditor implements Table
 
         System.out.println("Advanced stopCellEditing");
 
-        if (tabledesign.colls.get(last_col).validator != null) {
-            if (tabledesign.colls.get(last_col).validator.rejectData(component.getText())) {
-                component.setBorder(new LineBorder(Color.RED));
-                return false;
-            }
-        }
-
         if (current_value instanceof DBValue) {
             DBValue val = (DBValue) current_value;
             String s = component.getText();
 
-            boolean do_self = true;
-
-            if (tabledesign.colls.get(last_col).validator != null) {
-                if (tabledesign.colls.get(last_col).validator.wantDoLoadSelf()) {
-                    do_self = false;
-
-                    if (!tabledesign.colls.get(last_col).validator.loadToValue(val, s, last_row)) {
-                        component.setBorder(new LineBorder(Color.RED));
-                        return false;
-                    }
-                }
+            if (!val.acceptString(s)) {
+                component.setBorder(new LineBorder(Color.RED));
+                return false;
             }
-
-            if (do_self) {
-                if (!val.acceptString(s)) {
-                    component.setBorder(new LineBorder(Color.RED));
-                    return false;
-                }
-                val.loadFromString(s);
-            }
+            val.loadFromString(s);
         }
 
         component.setBackground(Color.WHITE);
