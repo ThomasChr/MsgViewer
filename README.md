@@ -9,6 +9,8 @@ This project is a fork of https://sourceforge.net/projects/msgviewer
 
 It has been Mavenized, and support for .eml to .msg has been added.
 
+[Created for CDMY220291]
+
 ## Build
 
 In order to build this project, make sure to have JDK 17+ installed, then clone the project sources:
