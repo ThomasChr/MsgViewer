@@ -14,6 +14,7 @@ stages:
             publishJUnitResults: false
             mavenOptions: '-Xmx3072m -Dmaven.test.failure.ignore=true'
             javaHomeOption: 'JDKVersion'
+            jdkVersionOption: 1.17
             jdkArchitectureOption: 'x64'
 
         - script: ls -laR $(Pipeline.Workspace)
