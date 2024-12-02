@@ -1,7 +1,6 @@
 [![CircleCI](https://circleci.com/gh/lolo101/MsgViewer.svg?style=shield)](https://app.circleci.com/pipelines/github/lolo101/MsgViewer)
 [![Build Status](https://travis-ci.com/lolo101/MsgViewer.svg?branch=master)](https://travis-ci.com/lolo101/MsgViewer)
-[![Codeship Status for lolo101/MsgViewer](https://app.codeship.com/projects/52c429a0-01fe-0135-ab0f-5a532b9c76c0/status?branch=master)](https://app.codeship.com/projects/213000)
-
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/05a7f752a0a24f76b6daf837b4aed525)](https://app.codacy.com/gh/lolo101/MsgViewer/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![CodeScene general](https://codescene.io/images/analyzed-by-codescene-badge.svg)](https://codescene.io/projects/2821)
 
 # msgviewer
@@ -12,19 +11,30 @@ It has been Mavenized, and support for .eml to .msg has been added.
 
 ## Build
 
-In order to build this project, make sure to have JDK 11+ installed, then clone the project sources:
+In order to build this project, make sure to have JDK 17+ installed, then clone the project sources:
 
 `git clone https://github.com/lolo101/MsgViewer.git`
 
-cd to the sources directory:
+cd to the project directory:
 
 `cd MsgViewer`
 
-At last, run the Maven build:
+then run the Maven build:
 
 `./mvnw package`
 
-The build will generate a number of files. The main file is a 'uber-jar' placed under **MSGViewer/target** directory.
+Building will generate a number of files. The main file is an 'uber-jar' placed under **MSGViewer/target** directory.
+
+## Command Line
+
+The application may be used on the command line. Just type :
+
+```
+cd MSGViewer/target
+java -jar msgviewer.jar -h
+```
+
+to display command line help.
 
 ## GUI
 
@@ -35,13 +45,17 @@ cd MSGViewer/target
 java -jar msgviewer.jar
 ```
 
-## Command Line
+In the GUI, you may open a message with the 'Open File' menu item or drop a message file in the window.
 
-The application may also be used on the command line. Just type :
+You may also open multiple messages at once by dropping a list of message files,
+a flat file with paths to message files or a selection of paths.
 
-```
-cd MSGViewer/target
-java -jar msgviewer.jar -h
-```
+### Locale
 
-to display command line help.
+Translation files are located under `~/.MSGViewer/translations/`
+
+Display Language may be configured in the Options. The default value is the platform locale.
+
+`F11` will switch between English and the current Display Language.
+
+`F12` will show Translation Dialog to edit a locale.

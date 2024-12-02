@@ -3,26 +3,25 @@ package at.redeye.FrameWork.base.prm.bindtypes;
 import at.redeye.FrameWork.base.bindtypes.DBHistory;
 import at.redeye.FrameWork.base.bindtypes.DBString;
 import at.redeye.FrameWork.base.bindtypes.DBStrukt;
-import at.redeye.FrameWork.base.prm.PrmAttachInterface;
 import at.redeye.FrameWork.base.prm.PrmDefaultChecksInterface;
 import at.redeye.FrameWork.base.prm.PrmListener;
 import at.redeye.FrameWork.base.prm.impl.PrmActionEvent;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Vector;
 
-public class DBConfig extends DBStrukt implements PrmAttachInterface {
+public class DBConfig extends DBStrukt {
     private static final String TABLENAME = "CONFIG";
 
-    private final Collection<PrmListener> prmListeners = new Vector<>();
+    private final Collection<PrmListener> prmListeners = new ArrayList<>();
     private String[] possibleValues = {};
 
     private PrmDefaultChecksInterface defaultChecks;
 
-    public DBString name = new DBString("name", "Name", 100);
-    public DBString value = new DBString("value", "Wert", 100);
-    public DBString descr = new DBString("description", "Beschreibung", 250);
-    public DBHistory hist = new DBHistory("hist");
+    public final DBString name = new DBString("name", "Name", 100);
+    public final DBString value = new DBString("value", "Wert", 100);
+    public final DBString descr = new DBString("description", "Beschreibung", 250);
+    public final DBHistory hist = new DBHistory("hist");
 
     public DBConfig() {
         super(TABLENAME);
@@ -30,8 +29,7 @@ public class DBConfig extends DBStrukt implements PrmAttachInterface {
         register();
     }
 
-    public DBConfig( String name, String value, String descr )
-    {
+    public DBConfig(String name, String value, String descr) {
         super(TABLENAME);
 
         register();
@@ -39,16 +37,6 @@ public class DBConfig extends DBStrukt implements PrmAttachInterface {
         this.name.loadFromString(name);
         this.value.loadFromString(value);
         this.descr.loadFromString(descr);
-    }
-
-    public DBConfig( String name, String value )
-    {
-        super(TABLENAME);
-
-        register();
-
-        this.name.loadFromString(name);
-        this.value.loadFromString(value);
     }
 
     public DBConfig( String name, String value, String descr, PrmDefaultChecksInterface checks )
@@ -99,33 +87,27 @@ public class DBConfig extends DBStrukt implements PrmAttachInterface {
         value.loadFromString(val);
     }
 
-    @Override
     public void addPrmListener(PrmListener listener) {
         prmListeners.add(listener);
     }
 
-    @Override
     public void removePrmListener(PrmListener listener) {
         prmListeners.remove(listener);
     }
 
-    @Override
     public void updateListeners(PrmActionEvent prmActionEvent) {
 
-        System.out.println("PRM " + name.toString() +
+        System.out.println("PRM " + name +
                 " has " + prmListeners.size() + " listener(s) registered!");
 
         boolean valueHasChanged = prmActionEvent.valueHasChanged();
 
         for (PrmListener currentListener : prmListeners) {
-            if (defaultChecks != null) {
-                if (valueHasChanged)
-                    currentListener.onChange(defaultChecks, prmActionEvent);
-            } else {
+            if (defaultChecks == null) {
                 System.out.println("-> no default check");
+            } else if (valueHasChanged) {
+                currentListener.onChange(defaultChecks, prmActionEvent);
             }
-
-            System.out.println("-> no custom check");
         }
     }
 

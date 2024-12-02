@@ -4,30 +4,37 @@ import com.auxilii.msgparser.Message;
 import com.auxilii.msgparser.attachment.Attachment;
 import com.auxilii.msgparser.attachment.FileAttachment;
 import com.auxilii.msgparser.attachment.MsgAttachment;
+import jakarta.activation.DataHandler;
+import jakarta.mail.BodyPart;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Part;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.internet.MimeUtility;
+import jakarta.mail.util.ByteArrayDataSource;
+import net.htmlparser.jericho.Source;
 import net.sourceforge.MSGViewer.AttachmentRepository;
+import net.sourceforge.MSGViewer.ViewerHelper;
 import net.sourceforge.MSGViewer.factory.MessageSaver;
 
-import javax.activation.DataHandler;
-import javax.mail.BodyPart;
-import javax.mail.MessagingException;
-import javax.mail.Part;
-import javax.mail.Session;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMultipart;
-import javax.mail.internet.MimeUtility;
-import javax.mail.util.ByteArrayDataSource;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
+import java.util.ArrayDeque;
+import java.util.Arrays;
+import java.util.Deque;
+import java.util.regex.Pattern;
 
 import static java.util.Objects.requireNonNullElse;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 public class MBoxWriterViaJavaMail {
+    private static final Pattern START_WITH_BLANK = Pattern.compile("^\\s");
     private final Session session = Session.getInstance(System.getProperties());
     private final AttachmentRepository attachmentRepository;
 
@@ -62,6 +69,10 @@ public class MBoxWriterViaJavaMail {
         jmsg.writeTo(out);
     }
 
+    protected String getExtension() {
+        return ".mbox";
+    }
+
     private BodyPart createPart(Attachment att) throws Exception {
         MimeBodyPart part = new MimeBodyPart();
         part.setDisposition(BodyPart.ATTACHMENT);
@@ -81,7 +92,7 @@ public class MBoxWriterViaJavaMail {
     private void dumpFileAttachment(FileAttachment fatt, MimeBodyPart part) throws IOException, MessagingException {
         Path content = attachmentRepository.getTempFile(fatt);
         part.attachFile(content.toFile());
-        part.setFileName(MimeUtility.encodeText(content.getFileName().toString(), "UTF-8", null));
+        part.setFileName(MimeUtility.encodeText(fatt.toString(), "UTF-8", null));
         part.setContentID(fatt.getContentId());
 
         try (OutputStream fout = Files.newOutputStream(content)) {
@@ -94,7 +105,7 @@ public class MBoxWriterViaJavaMail {
         part.attachFile(attachedMessagePath.toFile());
         part.setFileName(MimeUtility.encodeText(attachedMessagePath.getFileName().toString(), "UTF-8", null));
 
-        Message attachedMessage = msgAtt.getMessage();
+        Message attachedMessage = msgAtt.message();
         new MessageSaver(attachmentRepository, attachedMessage).saveMessage(withExtension(attachedMessagePath));
     }
 
@@ -111,28 +122,29 @@ public class MBoxWriterViaJavaMail {
     private static void addTextPart(Message msg, MimeMultipart mp_alternate) throws MessagingException {
         String plain_text_string = msg.getBodyText();
 
-        MimeBodyPart plain_text = new MimeBodyPart();
-        plain_text.setText(requireNonNullElse(plain_text_string, ""));
-        mp_alternate.addBodyPart(plain_text);
+        MimeBodyPart textPart = new MimeBodyPart();
+        textPart.setText(requireNonNullElse(plain_text_string, ""));
+        mp_alternate.addBodyPart(textPart);
     }
 
     private static void addRtfPart(Message msg, MimeMultipart mp_alternate) throws MessagingException, IOException {
         String rtf = msg.getBodyRTF();
 
         if (isNotBlank(rtf)) {
-            MimeBodyPart rtf_text = new MimeBodyPart();
-            rtf_text.setDataHandler(new DataHandler(new ByteArrayDataSource(rtf, "text/rtf;charset=UTF-8")));
-            mp_alternate.addBodyPart(rtf_text);
+            MimeBodyPart rtfPart = new MimeBodyPart();
+            rtfPart.setDataHandler(new DataHandler(new ByteArrayDataSource(rtf, "text/rtf;charset=UTF-8")));
+            mp_alternate.addBodyPart(rtfPart);
         }
     }
 
-    private static void addHtmlPart(Message msg, MimeMultipart mp_alternate) throws MessagingException, IOException {
-        String html = msg.getBodyHtml();
+    private static void addHtmlPart(Message msg, MimeMultipart mp_alternate) throws MessagingException {
+        byte[] html = msg.getBodyHtml();
 
-        if (isNotBlank(html)) {
-            MimeBodyPart html_text = new MimeBodyPart();
-            html_text.setDataHandler(new DataHandler(new ByteArrayDataSource(html, "text/html;charset=UTF-8")));
-            mp_alternate.addBodyPart(html_text);
+        if (html != null) {
+            MimeBodyPart htmlPart = new MimeBodyPart();
+            Source source = ViewerHelper.toHtmlSource(html);
+            htmlPart.setContent(source.toString(), "text/html;charset=" + source.getEncoding());
+            mp_alternate.addBodyPart(htmlPart);
         }
     }
 
@@ -142,34 +154,15 @@ public class MBoxWriterViaJavaMail {
         }
 
         String[] headers = msg.getHeaders().split("\n");
+        Deque<String> lines = new ArrayDeque<>(Arrays.asList(headers));
 
-        StringBuilder sb = new StringBuilder();
-
-        for (String hl : headers) {
-            String header_line = hl.trim();
-
-            if (header_line.startsWith(" ")) {
-                sb.append("\n");
-                sb.append(header_line);
-            } else {
-                sb.append(header_line);
-
-                String h = sb.toString();
-
-                int idx = h.indexOf(':');
-
-                if (idx > 0) {
-                    String name = h.substring(0, idx);
-                    String value = h.substring(idx + 1);
-
-                    if (name.startsWith("From ")) {
-                        sb.setLength(0);
-                        continue;
-                    }
-                    jmsg.addHeader(name, value);
-                }
-
-                sb.setLength(0);
+        while (!lines.isEmpty()) {
+            String headerLine = lines.remove();
+            int separatorIndex = headerLine.indexOf(':');
+            if (separatorIndex > 0) {
+                String name = headerLine.substring(0, separatorIndex);
+                String value = accumulateValue(lines, headerLine.substring(separatorIndex + 1));
+                jmsg.addHeader(name, value);
             }
         }
     }
@@ -182,7 +175,16 @@ public class MBoxWriterViaJavaMail {
         return parent.resolve(fileNameWithoutExtension + getExtension());
     }
 
-    protected String getExtension() {
-        return ".mbox";
+    private static String accumulateValue(Deque<String> lines, String value) {
+        StringBuilder buffer = new StringBuilder(value.trim());
+        while (!lines.isEmpty()) {
+            String valueContinuation = lines.peek();
+            if (START_WITH_BLANK.matcher(valueContinuation).find()) {
+                buffer.append(' ').append(valueContinuation.trim());
+                lines.remove();
+            } else break;
+        }
+        return buffer.toString();
     }
+
 }

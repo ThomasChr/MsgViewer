@@ -1,6 +1,5 @@
 package at.redeye.FrameWork.base;
 
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowListener;
 
@@ -18,7 +17,7 @@ public interface BaseDialogBase
      * width and height of the dialog.
      * The default behavior is retuning the dialog title.
      * This function should be overloaded if some instances of dialogs
-     * should all have the same e.g. size, but it's not possible, because
+     * should all have the same e.g. size, but it's not possible because
      * each one has a different title.
      */
 
@@ -36,18 +35,9 @@ public interface BaseDialogBase
 
     void setPreferredSize(Dimension dimension);
 
-    /**
-     * Registers a listener for a F1, ESC, or something global keypressed Event
-     * @param keyStroke Keyboard Key
-     * @param runnable      Method to call
-     */
-    void registerActionKeyListener(KeyStroke keyStroke, Runnable runnable);
-
     Container getContainer();
 
     void setCursor(Cursor predefinedCursor);
-
-    void adjustScrollingSpeed(JScrollPane scroll_panel);
 
     void setVisible(boolean b);
 
@@ -59,23 +49,11 @@ public interface BaseDialogBase
 
     boolean closeSubdialogsOnClose();
 
-    void setEdited();
-
-    void setEdited(boolean val);
-
     void dispose();
 
     int getX();
 
     int getY();
-
-    void closeNoAppExit();
-
-    /**
-    * language the dialog is programmed in
-    * if not set, the settings from Root.getBaseLangague() are used
-    */
-    void setBaseLanguage(String language);
 
     /**
      * @param message native langauge message
@@ -83,7 +61,7 @@ public interface BaseDialogBase
      */
     String MlM(String message);
 
-    void setWaitCursor();
-
-    void setNormalCursor();
+    default Point mousePosition() {
+        return MouseInfo.getPointerInfo().getLocation();
+    }
 }

@@ -3,7 +3,6 @@ package net.sourceforge.MSGViewer;
 import at.redeye.FrameWork.base.Root;
 import com.auxilii.msgparser.attachment.FileAttachment;
 import com.auxilii.msgparser.attachment.MsgAttachment;
-import org.apache.commons.lang3.StringUtils;
 
 import java.nio.file.Path;
 
@@ -15,11 +14,11 @@ public class AttachmentRepository {
     }
 
     public Path getTempFile(FileAttachment fatt) {
-        return getTempFile(StringUtils.isBlank(fatt.getLongFilename()) ? fatt.getFilename() : fatt.getLongFilename());
+        return getTempFile(fatt.getContentId() + fatt.getExtension());
     }
 
     public Path getTempFile(MsgAttachment matt) {
-        return getTempFile(matt.getMessage().hashCode() + ".msg");
+        return getTempFile(matt.message().hashCode() + ".msg");
     }
 
     private Path getTempFile(String fileName) {

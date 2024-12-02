@@ -19,7 +19,6 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static com.auxilii.msgparser.Pid.*;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
@@ -49,7 +48,7 @@ public class MsgContainer {
             addVarEntry(new BodyTextEntry(msg.getBodyText()));
         }
 
-        if (isNotEmpty(msg.getBodyHtml())) {
+        if (msg.getBodyHtml() != null) {
             addVarEntry(new BodyHtmlEntry(msg.getBodyHtml()));
         }
 
@@ -64,13 +63,10 @@ public class MsgContainer {
         // PidTagStoreSupportMask data is encoded in unicode
         addProperty(new PropPtypInteger32(PidTagStoreSupportMask, 0x00040000));
 
-        // PidTagCreationTime
         addProperty(new PropPtypTime(PidTagCreationTime, System.currentTimeMillis()));
 
-        // PidTagLastModificationTime
         addProperty(new PropPtypTime(PidTagLastModificationTime, System.currentTimeMillis()));
 
-        // PidTagClientSubmitTime
         if (msg.getDate() != null) {
             addProperty(new PropPtypTime(PidTagClientSubmitTime, msg.getDate().toEpochSecond() * 1000));
         }
@@ -256,7 +252,7 @@ public class MsgContainer {
 
         List<PropType> props = entries.stream()
                 .map(SubStorageEntry::getPropType)
-                .collect(Collectors.toList());
+                .toList();
 
         ByteBuffer bytes = createPropertiesEntryContent(props);
 
@@ -269,7 +265,7 @@ public class MsgContainer {
         createPropertyStreamEntry(bytes, att_dir);
 
         DirectoryEntry msg_dir = att_dir.createDirectory(Ptyp.SUBSTORAGE_PREFIX + "3701000D");
-        writeMessage(attachment.getMessage(), msg_dir);
+        writeMessage(attachment.message(), msg_dir);
     }
 
     private static void writeMessage(Message message, DirectoryEntry msg_dir) throws IOException {

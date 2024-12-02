@@ -21,9 +21,9 @@ public class RTFParser {
     private RTFGroup current_group;
     private Charset characterSet;
 
-    public String getHTML()
+    public byte[] getHTML()
     {
-        return htmlContent.toString();
+        return htmlContent.toString().getBytes(characterSet);
     }
 
     public void pushGroup()
@@ -144,7 +144,7 @@ void set_codepage() :
 {
     codepage = <C_CODEPAGE>
     {
-        characterSet = Charset.forName("CP" + codepage.image.substring(8));
+        characterSet = Charset.forName(codepage.image.replace("\\ansicpg", "CP"));
     }
 }
 

@@ -8,8 +8,10 @@ import at.redeye.FrameWork.base.tablemanipulator.TableManipulator;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Vector;
+
+import static java.util.Collections.singleton;
 
 public class RowHeaderTest extends BaseDialog {
 
@@ -31,7 +33,7 @@ public class RowHeaderTest extends BaseDialog {
 
         DBConfig config = new DBConfig();
 
-        tm = new TableManipulator(root, table, config);
+        tm = new TableManipulator(root.getSetup(), table, config);
 
         tm.hide(config.hist.an_user);
         tm.hide(config.hist.an_zeit);
@@ -40,7 +42,7 @@ public class RowHeaderTest extends BaseDialog {
 
         tm.setEditable(config.name);
 
-        Collection<DBConfig> data = new Vector<>();
+        Collection<DBConfig> data = new ArrayList<>();
 
         for (i = 0; i < 19; i++) {
             DBConfig c = new DBConfig();
@@ -148,7 +150,7 @@ public class RowHeaderTest extends BaseDialog {
 
         i++;
 
-        tm.add(c);
+        tm.addAll(singleton(c));
 
     }//GEN-LAST:event_jButton1ActionPerformed
 
@@ -195,7 +197,6 @@ public class RowHeaderTest extends BaseDialog {
 
     // FIXME make me a JUnit test
     public static void main(String[] args) {
-
         Root main_root = new Root("TT");
         new RowHeaderTest(main_root).setVisible(true);
     }

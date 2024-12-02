@@ -1,10 +1,6 @@
 package at.redeye.FrameWork.base;
 
-import at.redeye.FrameWork.base.bindtypes.DBDateTime;
-import at.redeye.FrameWork.base.bindtypes.DBFlagInteger;
-import at.redeye.FrameWork.base.bindtypes.DBValue;
 import at.redeye.FrameWork.base.tablemanipulator.TableManipulator;
-import at.redeye.FrameWork.widgets.datetime.IDateTimeComponent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -33,7 +29,7 @@ public class BaseDialog extends javax.swing.JFrame implements BindVarInterface,
     }
 
     /**
-     * Overload this method, if the window shouldn't open with the last
+     * Overload this method if the window shouldn't open with the last
      * stored width and height.
      *
      * @return true if the size of the dialog should be stored
@@ -65,9 +61,8 @@ public class BaseDialog extends javax.swing.JFrame implements BindVarInterface,
      * @param to_listen_Key Keyboard Key
      * @param runnable      Method to call
      */
-    @Override
-    public final void registerActionKeyListener(KeyStroke to_listen_Key,
-                                                Runnable runnable) {
+    protected final void registerActionKeyListener(KeyStroke to_listen_Key,
+                                                   Runnable runnable) {
         helper.registerActionKeyListener(to_listen_Key, runnable);
     }
 
@@ -87,17 +82,6 @@ public class BaseDialog extends javax.swing.JFrame implements BindVarInterface,
     }
 
     /**
-     * Schließt das Fenster, ohne die Appliaktion zu beenden, auch wenn das zu
-     * schließende Fenster das Letzte offene ist. Das default Verhalten der
-     * Appliaktion ist, dass beim Schließen des letzten offenen Fensters die
-     * komplette Applikation geschlossen wird.
-     */
-    @Override
-    public void closeNoAppExit() {
-        close();
-    }
-
-    /**
      * @return 1 on Save Data <br/>
      * 0 on Don't Save <br/>
      * -1 on Cancel <br/>
@@ -107,15 +91,15 @@ public class BaseDialog extends javax.swing.JFrame implements BindVarInterface,
     }
 
     /**
-     * Checks, if data within the table have been change, asks the user what
-     * sould be done (save it, don't save it, or cancel current operation
+     * If data within the table have been change, asks the user what
+     * sould be done (save it, don't save it, or cancel the current operation
      *
      * @param tm TableManipulator object
      * @return 1 when the data should be saved <br/>
      * 0 on saving should be done <br/>
      * -1 cancel current operation <br/>
      */
-    public int checkSave(TableManipulator tm) {
+    protected int checkSave(TableManipulator tm) {
         return helper.checkSave(tm);
     }
 
@@ -129,53 +113,21 @@ public class BaseDialog extends javax.swing.JFrame implements BindVarInterface,
         return true;
     }
 
-    @Override
-    public void setEdited() {
-        helper.setEdited();
+    protected final void setEdited() {
+        setEdited(true);
     }
 
-    protected boolean isEdited() {
+    protected final boolean isEdited() {
         return helper.isEdited();
     }
 
-    @Override
-    public void setEdited(boolean val) {
+    protected final void setEdited(boolean val) {
         helper.setEdited(val);
     }
 
     @Override
     public final void bindVar(JTextField jtext, StringBuffer var) {
         helper.bindVar(jtext, var);
-    }
-
-    @Override
-    public void bindVar(JTextArea jtext, StringBuffer var) {
-        helper.bindVar(jtext, var);
-    }
-
-    @Override
-    public void bindVar(JTextArea jtext, DBValue var) {
-        helper.bindVar(jtext, var);
-    }
-
-    @Override
-    public void bindVar(JTextField jtext, DBValue var) {
-        helper.bindVar(jtext, var);
-    }
-
-    @Override
-    public void bindVar(JCheckBox jtext, DBFlagInteger var) {
-        helper.bindVar(jtext, var);
-    }
-
-    @Override
-    public void bindVar(JComboBox<?> jComboBox, DBValue var) {
-        helper.bindVar(jComboBox, var);
-    }
-
-    @Override
-    public void bindVar(IDateTimeComponent comp, DBDateTime dateTime) {
-        helper.bindVar(comp, dateTime);
     }
 
     @Override
@@ -192,19 +144,12 @@ public class BaseDialog extends javax.swing.JFrame implements BindVarInterface,
         return helper.root;
     }
 
-    @Override
     public void setWaitCursor() {
         helper.setWaitCursor();
     }
 
-    @Override
     public void setNormalCursor() {
         helper.setWaitCursor(false);
-    }
-
-    @Override
-    public final void adjustScrollingSpeed(JScrollPane scroll_panel) {
-        helper.adjustScrollingSpeed(scroll_panel);
     }
 
     /**
@@ -240,16 +185,11 @@ public class BaseDialog extends javax.swing.JFrame implements BindVarInterface,
         return helper.getBindVarPairs();
     }
 
-    @Override
-    public void addBindVarPair(Pair pair) {
-        helper.addBindVarPair(pair);
-    }
-
     /**
      * @return a Dialog identifier for saving some data, e.g. width and height of
      * the dialog. The default behavior is retuning the dialog title.
      * This function should be overloaded if some instances of dialogs
-     * should all have the same e.g. size, but it's not possible, because
+     * should all have the same e.g. size, but it's not possible because
      * each one has a different title.
      */
 
@@ -259,11 +199,10 @@ public class BaseDialog extends javax.swing.JFrame implements BindVarInterface,
     }
 
     /**
-     * language the dialog is programmed in if not set, the settings from
+     * The language dialog is programmed in if not set, the settings from
      * Root.getBaseLangague() are used
      */
-    @Override
-    public final void setBaseLanguage(String language) {
+    protected final void setBaseLanguage(String language) {
         helper.setBaseLanguage(language);
     }
 

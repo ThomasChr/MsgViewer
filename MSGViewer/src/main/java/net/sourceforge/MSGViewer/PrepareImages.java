@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class PrepareImages {
+class PrepareImages {
 
     private static final Logger logger = LogManager.getLogger(PrepareImages.class);
     private static final String ATTRIBUTES_GROUP_NAME = "attr";
@@ -24,12 +24,11 @@ public class PrepareImages {
     private final Map<String, FileAttachment> attachmentById = new HashMap<>();
     private final Map<String, FileAttachment> attachmentByLocation = new HashMap<>();
 
-    public PrepareImages(AttachmentRepository attachmentRepository, Message message) {
+    PrepareImages(AttachmentRepository attachmentRepository, Message message) {
         this.attachmentRepository = attachmentRepository;
 
         for (Attachment att : message.getAttachments()) {
-            if (att instanceof FileAttachment) {
-                FileAttachment fatt = (FileAttachment) att;
+            if (att instanceof FileAttachment fatt) {
                 if (fatt.getContentId() != null) {
                     attachmentById.put(fatt.getContentId(), fatt);
                 }
@@ -40,7 +39,7 @@ public class PrepareImages {
         }
     }
 
-    public String prepareImages(String s) {
+    String prepareImages(String s) {
         Matcher matcher = IMG_PATTERN.matcher(s);
         StringBuilder ret = new StringBuilder();
         int lastMatchEnd = 0;

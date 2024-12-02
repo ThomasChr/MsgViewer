@@ -1,14 +1,10 @@
 package at.redeye.FrameWork.base;
 
-import at.redeye.FrameWork.base.bindtypes.DBDateTime;
-import at.redeye.FrameWork.base.bindtypes.DBFlagInteger;
-import at.redeye.FrameWork.base.bindtypes.DBValue;
 import at.redeye.FrameWork.base.prm.bindtypes.DBConfig;
 import at.redeye.FrameWork.base.tablemanipulator.TableManipulator;
 import at.redeye.FrameWork.base.translation.TranslationHelper;
 import at.redeye.FrameWork.utilities.StringUtils;
 import at.redeye.FrameWork.widgets.NoticeIfChangedTextField;
-import at.redeye.FrameWork.widgets.datetime.IDateTimeComponent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -48,7 +44,7 @@ public class BaseDialogBaseHelper implements BindVarInterface {
     private static int default_pos_x = 300;
     private static int default_pos_y = 300;
     /**
-     * language the dialog is programmed in if not set, the settings from
+     * The language dialog is programmed in if not set, the settings from
      * Root.getBaseLangague() are used
      */
     private String base_language;
@@ -78,100 +74,6 @@ public class BaseDialogBaseHelper implements BindVarInterface {
         initCommon(do_not_inform_root);
     }
 
-    private void initCommon(boolean do_not_inform_root) {
-        translation_helper = new TranslationHelper(root, parent, this);
-        parent.setTitle(MlM(title));
-
-        root.loadMlM4Class(this, "de");
-
-        if (!do_not_inform_root)
-            root.getDialogs().informWindowOpened(parent);
-
-        if (logger.isDebugEnabled()) {
-            logger.debug(title);
-        }
-
-        parent.addWindowListener(new java.awt.event.WindowAdapter() {
-
-            @Override
-            public void windowClosing(java.awt.event.WindowEvent e) {
-                if (parent.canClose()) {
-                    parent.close();
-                }
-            }
-        });
-
-        String id = parent.getUniqueDialogIdentifier();
-
-        int x = Integer.parseInt(root.getSetup().getConfig(
-                id.concat(Setup.WindowX), String.valueOf(default_pos_x += 30)));
-        int y = Integer.parseInt(root.getSetup().getConfig(
-                id.concat(Setup.WindowY), String.valueOf(default_pos_y += 30)));
-        int w = Integer.parseInt(root.getSetup().getConfig(
-                id.concat(Setup.WindowWidth), "0"));
-        int h = Integer.parseInt(root.getSetup().getConfig(
-                id.concat(Setup.WindowHeight), "0"));
-
-        Dimension dim = getVirtualScreenSize();
-
-        Point mouse_point = MouseInfo.getPointerInfo().getLocation();
-
-        if ((mouse_point.x <= x || x + w <= mouse_point.x)
-                && Math.abs(x + w - mouse_point.x) >= w) {
-            x = mouse_point.x - 100;
-        }
-
-        if ((mouse_point.y <= y || y + h <= mouse_point.y)
-                && Math.abs(y + h - mouse_point.y) >= h) {
-            y = mouse_point.y - 100;
-        }
-
-        if (dim.getWidth() < x + parent.getWidth())
-            x = 100;
-
-        if (dim.getHeight() < y + parent.getHeight())
-            y = 100;
-
-        if (x < 0)
-            x = 100;
-
-        if (y < 0)
-            y = 100;
-
-        logger.info("setting bounds to: " + x + "x" + y);
-        parent.setBounds(x, y, 0, 0);
-        logger.info("position now: " + parent.getX() + "x" + parent.getY());
-
-        if (w > 0 && h > 0 && parent.openWithLastWidthAndHeight()) {
-            logger.info(String.format("x (%d) + w (%d) = %d dim.Width: %d", x,
-                    w, x + w, (int) dim.getWidth()));
-
-            if (x + w > dim.getWidth()) {
-                logger.info("reducing with");
-                w = (int) dim.getWidth() - x;
-            }
-
-            logger.info(String.format("y (%d) + h (%d) = %d dim.Height: %d", y,
-                    h, y + h, (int) dim.getHeight()));
-
-            if (y + h > dim.getHeight()) {
-                logger.info("reducing height");
-                h = (int) dim.getHeight() - y;
-            }
-
-            logger.info("set size to: " + w + "x" + h);
-            parent.setPreferredSize(new Dimension(w, h));
-        }
-
-        registerActionKeyListener(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
-                () -> {
-                    if (parent.canClose()) {
-                        parent.close();
-                    }
-                });
-        StringUtils.set_defaultAutoLineLenght(Integer.parseInt(FrameWorkConfigDefinitions.DefaultAutoLineBreakWidth.getConfigValue()));
-    }
-
     /**
      * automatically opens the Help Windows, when F1 is pressed
      *
@@ -182,23 +84,6 @@ public class BaseDialogBaseHelper implements BindVarInterface {
 
         registerActionKeyListener(KeyStroke.getKeyStroke(KeyEvent.VK_F1, 0),
                 runnable);
-    }
-
-    /**
-     * returns the virtual screensize in a multimonitor system
-     */
-    private static Dimension getVirtualScreenSize() {
-        Rectangle virtualBounds = new Rectangle();
-        GraphicsEnvironment ge = GraphicsEnvironment
-                .getLocalGraphicsEnvironment();
-        GraphicsDevice[] gs = ge.getScreenDevices();
-        for (GraphicsDevice gd : gs) {
-            GraphicsConfiguration[] gc = gd.getConfigurations();
-            for (GraphicsConfiguration graphicsConfiguration : gc) {
-                virtualBounds = virtualBounds.union(graphicsConfiguration.getBounds());
-            }
-        }
-        return virtualBounds.getSize();
     }
 
     /**
@@ -233,13 +118,6 @@ public class BaseDialogBaseHelper implements BindVarInterface {
     }
 
     /**
-     * Setzt wieder den "normalen" Mauscursor
-     */
-    public void setNormalCursor() {
-        setWaitCursor(false);
-    }
-
-    /**
      * Konfiguriert das jScrollpanel entsprechen dem im Setup hinterlegten
      * Geschwindigkeit. Vom User über den Parameter VerticalScrollingSpeed
      * einstellbar.
@@ -253,20 +131,6 @@ public class BaseDialogBaseHelper implements BindVarInterface {
         } catch (NumberFormatException ex) {
             logger.error(ex);
         }
-    }
-
-    private static void adjustScrollingSpeed(Adjustable scrollBar, DBConfig config) {
-        String value = config.getConfigValue();
-
-        int i = Integer.parseInt(value);
-
-        if (i <= 0) {
-            logger.error("invalid scrolling interval: " + i
-                    + " using default value: " + config.getConfigValue());
-            i = Integer.parseInt(config.getConfigValue());
-        }
-
-        scrollBar.setUnitIncrement(i);
     }
 
     /**
@@ -308,10 +172,6 @@ public class BaseDialogBaseHelper implements BindVarInterface {
         onCloseListeners.add(runnable);
     }
 
-    public void setEdited() {
-        setEdited(true);
-    }
-
     public boolean isEdited() {
         return edited;
     }
@@ -325,8 +185,8 @@ public class BaseDialogBaseHelper implements BindVarInterface {
     }
 
     /**
-     * Checks, if data within the table have been change, asks the user what
-     * sould be done (save it, don't save it, or cancel current operation
+     * If data within the table have been change, asks the user what
+     * sould be done (save it, don't save it, or cancel the current operation
      *
      * @param tm TableManipulator object
      * @return 1 when the data should be saved <br/>
@@ -360,14 +220,11 @@ public class BaseDialogBaseHelper implements BindVarInterface {
                         parent.getTitle(), JOptionPane.YES_NO_CANCEL_OPTION,
                         JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
 
-        switch (n) {
-            case JOptionPane.YES_OPTION:
-                return 1;
-            case JOptionPane.NO_OPTION:
-                return 0;
-            default:
-                return -1;
-        }
+        return switch (n) {
+            case JOptionPane.YES_OPTION -> 1;
+            case JOptionPane.NO_OPTION -> 0;
+            default -> -1;
+        };
     }
 
     /**
@@ -380,8 +237,7 @@ public class BaseDialogBaseHelper implements BindVarInterface {
         String id_xy = parent.getUniqueDialogIdentifier();
         String id_wh = parent.getUniqueDialogIdentifier();
 
-        logger.info("store size to: " + parent.getWidth() + "x"
-                + parent.getHeight());
+        logger.info("store size to: {}x{}", parent.getWidth(), parent.getHeight());
 
         root.getSetup().setLocalConfig(id_xy.concat(Setup.WindowX),
                 Integer.toString(parent.getX()));
@@ -402,14 +258,6 @@ public class BaseDialogBaseHelper implements BindVarInterface {
         root.getDialogs().informWindowClosed(parent);
 
         parent.dispose();
-    }
-
-    private void registerActionKeyListenerOnRootPane(KeyStroke key) {
-        if (myrootPane == null)
-            return;
-
-        myrootPane.registerKeyboardAction(new ActionKeyListener(key), key,
-                JComponent.WHEN_IN_FOCUSED_WINDOW);
     }
 
     /**
@@ -451,110 +299,6 @@ public class BaseDialogBaseHelper implements BindVarInterface {
     }
 
     /**
-     * in jTextArea an eine StringBuffer anbinden
-     *
-     * @param jtext das Textfeld
-     * @param var   der StringBuffer
-     *              <p>
-     *              Bei einem Aufruf von var_to_gui(), oder gui_to_var(), wird dann der
-     *              demenstprechende Inhalt entweder vom GUI zu Variablen, oder umgekehrt
-     *              übertragen.
-     */
-    @Override
-    public void bindVar(JTextArea jtext, StringBuffer var) {
-        checkBindVars();
-        bind_vars.bindVar(jtext, var);
-    }
-
-    /**
-     * in jTextArea an eine DBValue anbinden
-     *
-     * @param jtext das Textfeld
-     * @param var   der DBValue
-     *              <p>
-     *              Bei einem Aufruf von var_to_gui(), oder gui_to_var(), wird dann der
-     *              demenstprechende Inhalt entweder vom GUI zu Variablen, oder umgekehrt
-     *              übertragen.
-     */
-    @Override
-    public void bindVar(JTextArea jtext, DBValue var) {
-        checkBindVars();
-        bind_vars.bindVar(jtext, var);
-    }
-
-    /**
-     * Ein jTextField an eine DBValue anbinden
-     *
-     * @param jtext das Textfeld
-     * @param var   die Datenbankvariable
-     *              <p>
-     *              Bei einem Aufruf von var_to_gui(), oder gui_to_var(), wird
-     *              dann der demenstprechende Inhalt entweder vom GUI zu
-     *              Variablen, oder umgekehrt übertragen.
-     */
-    @Override
-    public void bindVar(JTextField jtext, DBValue var) {
-
-        checkBindVars();
-
-        bind_vars.bindVar(jtext, var);
-    }
-
-    /**
-     * Eine {@link JComboBox} an eine {@link DBValue} anbinden
-     *
-     * @param jcombo das Textfeld
-     * @param var    die Datenbankvariable
-     *               <p>
-     *               Bei einem Aufruf von var_to_gui(), oder gui_to_var(), wird
-     *               dann der demenstprechende Inhalt entweder vom GUI zu
-     *               Variablen, oder umgekehrt übertragen.
-     */
-    @Override
-    public void bindVar(JComboBox<?> jcombo, DBValue var) {
-
-        checkBindVars();
-
-        bind_vars.bindVar(jcombo, var);
-    }
-
-    /**
-     * Eine {@link IDateTimeComponent} an eine {@link DBDateTime} Variable
-     * anbinden
-     *
-     * @param comp     die DateTime Komponente
-     * @param dateTime die Datenbankvariable
-     *                 <p>
-     *                 Bei einem Aufruf von var_to_gui(), oder gui_to_var(), wird
-     *                 dann der demenstprechende Inhalt entweder vom GUI zu
-     *                 Variablen, oder umgekehrt übertragen.
-     */
-    public void bindVar(IDateTimeComponent comp, DBDateTime dateTime) {
-
-        checkBindVars();
-
-        bind_vars.bindVar(comp, dateTime);
-    }
-
-    /**
-     * Eine JCheckBox an eine DBFlagInteger Variable anbinden
-     *
-     * @param jtext die Textbox
-     * @param var   die Datebanvariable
-     *              <p>
-     *              Bei einem Aufruf von var_to_gui(), oder gui_to_var(), wird
-     *              dann der demenstprechende Inhalt entweder vom GUI zu
-     *              Variablen, oder umgekehrt übertragen.
-     */
-    @Override
-    public void bindVar(JCheckBox jtext, DBFlagInteger var) {
-
-        checkBindVars();
-
-        bind_vars.bindVar(jtext, var);
-    }
-
-    /**
      * Alle Werte der angebunden Variablen in die entsprechenden GUI Komponenten
      * übertragen
      */
@@ -579,21 +323,6 @@ public class BaseDialogBaseHelper implements BindVarInterface {
         bind_vars.gui_to_var();
     }
 
-    private void setBindVarsChanged() {
-
-        if (bind_vars == null)
-            return;
-
-        for (Pair pair : bind_vars.getBindVarPairs()) {
-            if (pair.get_first() instanceof NoticeIfChangedTextField) {
-                NoticeIfChangedTextField text_field = (NoticeIfChangedTextField) pair
-                        .get_first();
-
-                text_field.setChanged(false);
-            }
-        }
-    }
-
     @Override
     public Collection<Pair> getBindVarPairs() {
 
@@ -602,20 +331,8 @@ public class BaseDialogBaseHelper implements BindVarInterface {
         return bind_vars.getBindVarPairs();
     }
 
-    @Override
-    public void addBindVarPair(Pair pair) {
-        checkBindVars();
-
-        bind_vars.addBindVarPair(pair);
-    }
-
-    private void checkBindVars() {
-        if (bind_vars == null)
-            bind_vars = new BindVarBase();
-    }
-
     /**
-     * language the dialog is programmed in if not set, the settings from
+     * The language dialog is programmed in if not set, the settings from
      * Root.getBaseLangague() are used
      */
     public void setBaseLanguage(String language) {
@@ -623,7 +340,7 @@ public class BaseDialogBaseHelper implements BindVarInterface {
     }
 
     /**
-     * @return language the dialog is programmed in if not set, the settings
+     * @return the language dialog is programmed in if not set, the settings
      * from Root.getBaseLangague() are used
      */
     public String getBaseLanguage() {
@@ -631,10 +348,6 @@ public class BaseDialogBaseHelper implements BindVarInterface {
             return root.getBaseLanguage();
 
         return base_language;
-    }
-
-    private void autoSwitchToCurrentLocale() {
-        translation_helper.autoSwitchToCurrentLocale();
     }
 
     public void doLayout() {
@@ -650,6 +363,171 @@ public class BaseDialogBaseHelper implements BindVarInterface {
      */
     public String MlM(String message) {
         return translation_helper.MlM(message);
+    }
+
+    private void initCommon(boolean do_not_inform_root) {
+        translation_helper = new TranslationHelper(root, parent, this);
+        parent.setTitle(MlM(title));
+
+        root.loadMlM4Class(this, "de");
+
+        if (!do_not_inform_root)
+            root.getDialogs().informWindowOpened(parent);
+
+        if (logger.isDebugEnabled()) {
+            logger.debug(title);
+        }
+
+        parent.addWindowListener(new java.awt.event.WindowAdapter() {
+
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                if (parent.canClose()) {
+                    parent.close();
+                }
+            }
+        });
+
+        initGeometry();
+
+        registerActionKeyListener(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
+                () -> {
+                    if (parent.canClose()) {
+                        parent.close();
+                    }
+                });
+        StringUtils.set_defaultAutoLineLenght(Integer.parseInt(FrameWorkConfigDefinitions.DefaultAutoLineBreakWidth.getConfigValue()));
+    }
+
+    private void initGeometry() {
+        int x = getConfig(Setup.WindowX, default_pos_x += 30);
+        int y = getConfig(Setup.WindowY, default_pos_y += 30);
+        int w = getConfig(Setup.WindowWidth, 0);
+        int h = getConfig(Setup.WindowHeight, 0);
+
+        Point mouse_point = parent.mousePosition();
+
+        if ((mouse_point.x <= x || x + w <= mouse_point.x)
+                && Math.abs(x + w - mouse_point.x) >= w) {
+            x = mouse_point.x - 100;
+        }
+
+        if ((mouse_point.y <= y || y + h <= mouse_point.y)
+                && Math.abs(y + h - mouse_point.y) >= h) {
+            y = mouse_point.y - 100;
+        }
+
+        Dimension dim = getVirtualScreenSize();
+        if (xOutsideWidth(x, dim.getWidth()))
+            x = 100;
+
+        if (yOutsideHeight(y, dim.getHeight()))
+            y = 100;
+
+        logger.info("setting bounds to: {}x{}", x, y);
+        parent.setBounds(x, y, 0, 0);
+        logger.info("position now: {}x{}", parent.getX(), parent.getY());
+
+        if (w > 0 && h > 0 && parent.openWithLastWidthAndHeight()) {
+            logger.info(String.format("x (%d) + w (%d) = %d dim.Width: %d", x,
+                    w, x + w, (int) dim.getWidth()));
+
+            if (x + w > dim.getWidth()) {
+                logger.info("reducing with");
+                w = (int) dim.getWidth() - x;
+            }
+
+            logger.info(String.format("y (%d) + h (%d) = %d dim.Height: %d", y,
+                    h, y + h, (int) dim.getHeight()));
+
+            if (y + h > dim.getHeight()) {
+                logger.info("reducing height");
+                h = (int) dim.getHeight() - y;
+            }
+
+            logger.info("set size to: {}x{}", w, h);
+            parent.setPreferredSize(new Dimension(w, h));
+        }
+    }
+
+    private int getConfig(String key, int defaultValue) {
+        String id = parent.getUniqueDialogIdentifier();
+        return Integer.parseInt(root.getSetup().getConfig(
+                id + key, String.valueOf(defaultValue)));
+    }
+
+    /**
+     * returns the virtual screensize in a multimonitor system
+     */
+    private static Dimension getVirtualScreenSize() {
+        Rectangle virtualBounds = new Rectangle();
+        GraphicsEnvironment ge = GraphicsEnvironment
+                .getLocalGraphicsEnvironment();
+        GraphicsDevice[] gs = ge.getScreenDevices();
+        for (GraphicsDevice gd : gs) {
+            GraphicsConfiguration[] gc = gd.getConfigurations();
+            for (GraphicsConfiguration graphicsConfiguration : gc) {
+                virtualBounds = virtualBounds.union(graphicsConfiguration.getBounds());
+            }
+        }
+        return virtualBounds.getSize();
+    }
+
+    private boolean xOutsideWidth(int x, double width) {
+        return width < x + parent.getWidth() || x < 0;
+    }
+
+    private boolean yOutsideHeight(int y, double height) {
+        return height < y + parent.getHeight() || y < 0;
+    }
+
+    /**
+     * Setzt wieder den "normalen" Mauscursor
+     */
+    private void setNormalCursor() {
+        setWaitCursor(false);
+    }
+
+    private static void adjustScrollingSpeed(Adjustable scrollBar, DBConfig config) {
+        String value = config.getConfigValue();
+
+        int i = Integer.parseInt(value);
+
+        if (i <= 0) {
+            logger.error("invalid scrolling interval: {} using default value: {}", i, config.getConfigValue());
+            i = Integer.parseInt(config.getConfigValue());
+        }
+
+        scrollBar.setUnitIncrement(i);
+    }
+
+    private void registerActionKeyListenerOnRootPane(KeyStroke key) {
+        if (myrootPane == null)
+            return;
+
+        myrootPane.registerKeyboardAction(new ActionKeyListener(key), key,
+                JComponent.WHEN_IN_FOCUSED_WINDOW);
+    }
+
+    private void setBindVarsChanged() {
+
+        if (bind_vars == null)
+            return;
+
+        for (Pair pair : bind_vars.getBindVarPairs()) {
+            if (pair.get_first() instanceof NoticeIfChangedTextField text_field) {
+                text_field.setChanged(false);
+            }
+        }
+    }
+
+    private void checkBindVars() {
+        if (bind_vars == null)
+            bind_vars = new BindVarBase();
+    }
+
+    private void autoSwitchToCurrentLocale() {
+        translation_helper.autoSwitchToCurrentLocale();
     }
 
     private void cancelAutoRefreshTimer() {

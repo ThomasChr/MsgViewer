@@ -37,23 +37,17 @@ public class MsgParser {
     /**
      * Parses a .msg file provided by an input stream.
      *
-     * @param msgFileStream The .msg file as a InputStream.
+     * @param msgFileStream The .msg file as an InputStream.
      * @return A {@link Message} object representing the .msg file.
      * @throws IOException Thrown if the file could not be loaded or parsed.
      */
     private static Message parseMsg(InputStream msgFileStream) throws IOException {
-        // the .msg file, like a file system, contains directories
-        // and documents within these directories
-        // we now gain access to the root node
-        // and recursively go through the complete 'filesystem'.
-        POIFSFileSystem fs = new POIFSFileSystem(msgFileStream);
-        DirectoryEntry dir = fs.getRoot();
-        Message msg = new Message();
-        parseMsg(dir, msg);
-        return msg;
+        try (POIFSFileSystem fs = new POIFSFileSystem(msgFileStream)) {
+            return parseMsg(fs.getRoot());
+        }
     }
 
-    private static void parseMsg(DirectoryEntry dir, Message msg) throws IOException {
+    private static Message parseMsg(DirectoryEntry dir) throws IOException {
         DocumentEntry propertiesEntry = (DocumentEntry) dir.getEntry(PROPERTIES_ENTRY);
         try (DocumentInputStream propertyStream = new DocumentInputStream(propertiesEntry)) {
             propertyStream.skip(8);
@@ -66,17 +60,19 @@ public class MsgParser {
                 propertyStream.skip(8);
             }
 
+            Message msg = new Message();
             for (int index = 0; index < recipientCount; index++) {
                 DirectoryEntry entry = (DirectoryEntry) dir.getEntry(String.format("__recip_version1.0_#%08X", index));
-                parseRecipient(entry, msg);
+                msg.addRecipient(parseRecipient(entry));
             }
             for (int index = 0; index < attachmentCount; index++) {
                 DirectoryEntry entry = (DirectoryEntry) dir.getEntry(String.format("__attach_version1.0_#%08X", index));
-                parseAttachment(entry, msg);
+                msg.addAttachment(parseAttachment(entry));
             }
             while (propertyStream.available() > 0) {
                 msg.setProperty(new Property(propertyStream, dir));
             }
+            return msg;
         }
     }
 
@@ -85,11 +81,10 @@ public class MsgParser {
      * The parsed information is put into the {@link Message} object.
      *
      * @param dir The current node in the .msg file.
-     * @param msg The resulting {@link Message} object.
      * @throws IOException Thrown if the .msg file could not
      *                     be parsed.
      */
-    private static void parseRecipient(DirectoryEntry dir, Message msg) throws IOException {
+    private static RecipientEntry parseRecipient(DirectoryEntry dir) throws IOException {
         RecipientEntry recipient = new RecipientEntry();
         DocumentEntry propertyEntry = (DocumentEntry) dir.getEntry(PROPERTIES_ENTRY);
         try (DocumentInputStream propertyStream = new DocumentInputStream(propertyEntry)) {
@@ -98,8 +93,7 @@ public class MsgParser {
                 recipient.setProperty(new Property(propertyStream, dir));
             }
         }
-
-        msg.addRecipient(recipient);
+        return recipient;
     }
 
     /**
@@ -112,36 +106,27 @@ public class MsgParser {
      * @param dir The directory entry containing the attachment
      *            document entry and some other document entries
      *            describing the attachment (name, extension, mime type, ...)
-     * @param msg The {@link Message} object that this
-     *            attachment should be added to.
      * @throws IOException Thrown if the attachment could
      *                     not be parsed/read.
      */
-    private static void parseAttachment(DirectoryEntry dir, Message msg) throws IOException {
+    private static Attachment parseAttachment(DirectoryEntry dir) throws IOException {
         if (dir.hasEntry(Ptyp.SUBSTORAGE_PREFIX + "3701000D")) {
-            parseEmbeddedMessage(dir, msg);
-        } else {
-            ParseFileAttachment(dir, msg);
+            return parseEmbeddedMessage(dir);
         }
+        return ParseFileAttachment(dir);
     }
 
-    private static void parseEmbeddedMessage(DirectoryEntry dir, Message msg) throws IOException {
+    private static MsgAttachment parseEmbeddedMessage(DirectoryEntry dir) throws IOException {
         DirectoryEntry entry = (DirectoryEntry) dir.getEntry(Ptyp.SUBSTORAGE_PREFIX + "3701000D");
-        Message attachmentMsg = new Message();
-        MsgAttachment msgAttachment = new MsgAttachment();
-        msgAttachment.setMessage(attachmentMsg);
 
-        parseMsg(entry, attachmentMsg);
-
-        msg.addAttachment(msgAttachment);
+        return new MsgAttachment(parseMsg(entry));
     }
 
-    private static void ParseFileAttachment(DirectoryEntry dir, Message msg) throws IOException {
+    private static FileAttachment ParseFileAttachment(DirectoryEntry dir) throws IOException {
         DocumentEntry propertyEntry = (DocumentEntry) dir.getEntry(PROPERTIES_ENTRY);
         try (DocumentInputStream propertyStream = new DocumentInputStream(propertyEntry)) {
             propertyStream.skip(8);
-            FileAttachment fileAttachment = createAttachmentWithProperties(dir, propertyStream);
-            msg.addAttachment(fileAttachment);
+            return createAttachmentWithProperties(dir, propertyStream);
         }
 
     }

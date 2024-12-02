@@ -1,9 +1,6 @@
 package at.redeye.FrameWork.base.translation;
 
-import at.redeye.FrameWork.base.AutoMBox;
-import at.redeye.FrameWork.base.BaseDialog;
-import at.redeye.FrameWork.base.Root;
-import at.redeye.FrameWork.base.Setup;
+import at.redeye.FrameWork.base.*;
 import at.redeye.FrameWork.widgets.GridLayout2;
 import at.redeye.FrameWork.widgets.NoticeIfChangedTextField;
 import at.redeye.FrameWork.widgets.helpwindow.HelpWin;
@@ -14,29 +11,28 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.*;
 
 public class TranslationDialog extends BaseDialog {
 
-    public static String TRANS_LAST_LANGUAGE = "last_language";
-    public static String TRANS_LAST_COUNTRY = "last_country";
-    public static String TRANS_LAST_LEFT_COLCOUNT = "trans_last_right_colcount";
-    public static String TRANS_LAST_RIGHT_COLCOUNT = "trans_last_left_colcount";
+    private static final String TRANS_LAST_LANGUAGE = "last_language";
+    private static final String TRANS_LAST_COUNTRY = "last_country";
+    private static final String TRANS_LAST_LEFT_COLCOUNT = "trans_last_right_colcount";
+    private static final String TRANS_LAST_RIGHT_COLCOUNT = "trans_last_left_colcount";
 
-    Vector<SimpleEntry<String, StringBuffer>> data = new Vector<>();
-    Vector<NoticeIfChangedTextField> fields = new Vector<>();
+    private final Map<String, StringBuffer> data = new HashMap<>();
+    private final Collection<NoticeIfChangedTextField> fields = new ArrayList<>();
 
-    String ClassName;
+    private final String ClassName;
 
-    int prev_lang_index = -1;
-    int prev_country_index = -1;
+    private int prev_lang_index = -1;
+    private int prev_country_index = -1;
 
-    boolean force_undo_country = false;
-    boolean force_undo_language = false;
+    private boolean force_undo_country;
+    private boolean force_undo_language;
 
-    Vector<JTextField> left_cols = new Vector<>();
-    Vector<JTextField> right_cols = new Vector<>();
+    private final Collection<JTextField> left_cols = new ArrayList<>();
+    private final Collection<JTextField> right_cols = new ArrayList<>();
 
     public TranslationDialog(final Root root, Container frame, String name, ExtractStrings es) {
         super(root, name);
@@ -155,13 +151,13 @@ public class TranslationDialog extends BaseDialog {
 
                 panel.add(editField);
 
-                SimpleEntry<String, StringBuffer> pair = new SimpleEntry<>(s, new StringBuffer());
+                StringBuffer value = new StringBuffer();
 
-                this.bindVar(editField, pair.getValue());
+                this.bindVar(editField, value);
 
                 fields.add(editField);
 
-                data.add(pair);
+                data.put(s, value);
             }
         }
 
@@ -173,7 +169,7 @@ public class TranslationDialog extends BaseDialog {
 
         language.removeAllItems();
 
-        Set<String> languages = new TreeSet<>();
+        Collection<String> languages = new TreeSet<>();
 
         for (Locale l : Locale.getAvailableLocales()) {
             languages.add(l.getLanguage());
@@ -190,7 +186,7 @@ public class TranslationDialog extends BaseDialog {
 
         country.removeAllItems();
 
-        Set<String> countries = new TreeSet<>();
+        Collection<String> countries = new TreeSet<>();
 
 
         for (Locale l : Locale.getAvailableLocales()) {
@@ -240,6 +236,9 @@ public class TranslationDialog extends BaseDialog {
         return String.format(MlM("Übersetzungen von %s "), name);
     }
 
+    private static void adjustScrollingSpeed(JScrollPane scroll_panel) {
+        BaseDialogBaseHelper.adjustScrollingSpeed(scroll_panel);
+    }
 
     @Override
     public void close() {
@@ -253,12 +252,8 @@ public class TranslationDialog extends BaseDialog {
 
     @Override
     public boolean canClose() {
-        for (NoticeIfChangedTextField field : fields) {
-            if (field.hasChanged()) {
-                setEdited();
-                break;
-            }
-        }
+        if (fields.stream().anyMatch(NoticeIfChangedTextField::hasChanged))
+            setEdited();
 
         if (isEdited()) {
             int ret = checkSave();
@@ -468,7 +463,7 @@ public class TranslationDialog extends BaseDialog {
 
             Properties props = new Properties();
 
-            for (SimpleEntry<String, StringBuffer> pair : data) {
+            for (Map.Entry<String, StringBuffer> pair : data.entrySet()) {
                 if (pair.getValue().length() > 0) {
                     props.setProperty(pair.getKey(), pair.getValue().toString());
                 }
@@ -478,9 +473,7 @@ public class TranslationDialog extends BaseDialog {
                 props.store(out, "nix");
             }
 
-            fields.forEach(field -> field.setChanged(false));
-
-            setEdited(false);
+            resetEdited();
         }).run();
     }//GEN-LAST:event_jBSaveActionPerformed
 
@@ -587,12 +580,12 @@ public class TranslationDialog extends BaseDialog {
             }
         }
 
-        for (SimpleEntry<String, StringBuffer> p : data) {
-            String trans = props.getProperty(p.getKey());
+        for (Map.Entry<String, StringBuffer> p : data.entrySet()) {
 
             StringBuffer buf = p.getValue();
             buf.setLength(0);
 
+            String trans = props.getProperty(p.getKey());
             if (trans != null) {
                 buf.append(trans);
             }
@@ -600,8 +593,11 @@ public class TranslationDialog extends BaseDialog {
 
         var_to_gui();
 
-        fields.forEach(field -> field.setChanged(false));
+        resetEdited();
+    }
 
+    private void resetEdited() {
+        fields.forEach(field -> field.setChanged(false));
         setEdited(false);
     }
 

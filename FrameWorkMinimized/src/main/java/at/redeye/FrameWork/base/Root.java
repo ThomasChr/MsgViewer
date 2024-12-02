@@ -1,15 +1,17 @@
 package at.redeye.FrameWork.base;
 
+import at.redeye.FrameWork.base.prm.bindtypes.DBConfig;
+import at.redeye.FrameWork.base.prm.impl.ConfigDefinitions;
 import at.redeye.FrameWork.base.translation.MLHelper;
 import at.redeye.FrameWork.utilities.Storage;
 
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.Locale;
 
 public class Root {
     private static Root static_root;
     private final String app_name;
-    private final String app_title;
     private final Setup setup;
     private final Plugins plugins;
     private final Path storage;
@@ -17,8 +19,8 @@ public class Root {
     private final MLHelper ml_helper;
 
     /**
-     * language most of the aplication is programmed in
-     * can be set in each dialog but if not set
+     * Language most of the aplication is programmed in.
+     * Can be set in each dialog, but if not set
      * here you can define the default
      * <p>
      * This is set to "en" by default.
@@ -26,13 +28,13 @@ public class Root {
     private String base_language;
 
     /**
-     * fallback language if the target language is not
+     * Fallback language if the target language is not
      * available.
      * Eg: Dialogs are programmed in german, transalations
      * are available in english too. But on a French PC
-     * we have no translatios. So whout should we do now?
+     * we have no translatios. So what should we do now?
      * Here you can define the default language which can be
-     * diferrent from the language the dialog was translated
+     * different from the language the dialog was translated
      * for.
      * <p>
      * This is set to "en" by default
@@ -54,12 +56,7 @@ public class Root {
     private String[] startupArgs;
 
     public Root(String app_name) {
-        this(app_name, app_name);
-    }
-
-    public Root(String app_name, String app_title) {
         this.app_name = app_name;
-        this.app_title = app_title;
         static_root = this;
         setup = new Setup(app_name);
         plugins = new Plugins(app_name);
@@ -90,17 +87,13 @@ public class Root {
         return app_name;
     }
 
-    public String getAppTitle() {
-        return app_title;
-    }
-
     public Plugins getPlugins() {
         return plugins;
     }
 
     /**
      * language most of the aplication is programmed in
-     * can be set in each dialog but if not set
+     * can be set in each dialog, but if not set
      * here you can define the default
      * <p>
      * This is set to "en" by default.
@@ -110,13 +103,13 @@ public class Root {
     }
 
     /**
-     * fallback language if the target language is not
+     * Fallback language if the target language is not
      * available.
      * Eg: Dialogs are programmed in german, transalations
      * are available in english too. But on a French PC
-     * we have no translatios. So whout should we do now?
+     * we have no translatios. So what should we do now?
      * Here you can define the default language which can be
-     * diferrent from the language the dialog was translated
+     * different from the language the dialog was translated
      * for.
      * <p>
      * This is set to "en" by default
@@ -127,13 +120,13 @@ public class Root {
     }
 
     /**
-     * fallback language if the target language is not
+     * Fallback language if the target language is not
      * available.
      * Eg: Dialogs are programmed in german, transalations
      * are available in english too. But on a French PC
-     * we have no translatios. So whout should we do now?
+     * we have no translatios. So what should we do now?
      * Here you can define the default language which can be
-     * diferrent from the language the dialog was translated
+     * different from the language the dialog was translated
      * for.
      * <p>
      * This is set to "en" by default
@@ -148,7 +141,7 @@ public class Root {
 
     /**
      * language most of the aplication is programmed in
-     * can be set in each dialog but if not set
+     * can be set in each dialog, but if not set
      * here you can define the default
      * <p>
      * This is set to "en" by default.
@@ -179,15 +172,7 @@ public class Root {
     {
         if (display_language == null)
         {
-            display_language = Locale.getDefault().toString();
-
-            String lang = BaseAppConfigDefinitions.DisplayLanguage.getConfigValue();
-
-            if (lang != null && lang.trim().isEmpty()) {
-                return display_language;
-            }
-
-            display_language = lang;
+            display_language = selectDisplayLanguage();
         }
 
         return display_language;
@@ -243,5 +228,25 @@ public class Root {
 
     public String[] getStartupArgs() {
         return startupArgs;
+    }
+
+    public Collection<DBConfig> loadConfig() {
+        Collection<DBConfig> configs = ConfigDefinitions.entries.values();
+
+        for (DBConfig c : configs) {
+            String val = setup.getConfig(c.getConfigName(), c.getConfigValue());
+            c.descr.loadFromCopy(MlM(c.descr.getValue()));
+            c.setConfigValue(val);
+        }
+
+        return configs;
+    }
+
+    private static String selectDisplayLanguage() {
+        String lang = BaseAppConfigDefinitions.DisplayLanguage.getConfigValue();
+        if (lang == null || lang.isBlank()) {
+            return Locale.getDefault().toString();
+        }
+        return lang;
     }
 }

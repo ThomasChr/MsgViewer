@@ -3,6 +3,8 @@ package at.redeye.FrameWork.base;
 import at.redeye.FrameWork.utilities.ParseJNLP;
 import at.redeye.FrameWork.utilities.StringUtils;
 import at.redeye.FrameWork.widgets.StartupWindow;
+import java.util.Arrays;
+import java.util.List;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,7 +19,7 @@ import java.io.File;
 import java.util.Properties;
 import java.util.stream.Stream;
 
-public abstract class BaseModuleLauncher {
+public class BaseModuleLauncher {
     protected StartupWindow splash;
     public static final Logger logger = LogManager.getRootLogger();
     public Root root;
@@ -121,9 +123,7 @@ public abstract class BaseModuleLauncher {
         loggerConfig.setLevel(Level.getLevel(logFileLevel));
         loggerConfig.addAppender(consoleAppender, null, null);
 
-        if (loggingEnabled.equalsIgnoreCase("ja")
-                || loggingEnabled.equalsIgnoreCase("yes")
-                || loggingEnabled.equalsIgnoreCase("true")) {
+        if (StringUtils.isYes(loggingEnabled)) {
 
             RollingFileAppender fileAppender = RollingFileAppender.newBuilder()
                     .setLayout(layout)
@@ -136,8 +136,6 @@ public abstract class BaseModuleLauncher {
         }
 
     }
-
-    public abstract String getVersion();
 
     protected final boolean splashEnabled() {
         return !StringUtils.isYes(getNoSplash());
@@ -160,17 +158,10 @@ public abstract class BaseModuleLauncher {
         logger.debug("Found LookAndFeel PRM value: <" + config + ">");
 
         try {
-            UIManager.setLookAndFeel(getLookAndFeelStrByName(config));
-        } catch (ReflectiveOperationException | UnsupportedLookAndFeelException e) {
-            logger.error(e.getMessage());
+            UIManager.setLookAndFeel(UIManager.createLookAndFeel(config));
+        } catch (UnsupportedLookAndFeelException e) {
+            List<String> names = Arrays.stream(UIManager.getInstalledLookAndFeels()).map(UIManager.LookAndFeelInfo::getName).toList();
+            logger.error("{} is unavailable. Available LnF: {}", config, names);
         }
-    }
-
-    private static String getLookAndFeelStrByName(String name) {
-
-        if (name.equalsIgnoreCase("motif")) return "com.sun.java.swing.plaf.motif.MotifLookAndFeel";
-        if (name.equalsIgnoreCase("metal")) return "javax.swing.plaf.metal.MetalLookAndFeel";
-        if (name.equalsIgnoreCase("nimbus")) return "com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel";
-        return UIManager.getSystemLookAndFeelClassName();
     }
 }

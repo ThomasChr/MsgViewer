@@ -1,6 +1,5 @@
 package net.sourceforge.MSGViewer;
 
-import at.redeye.FrameWork.utilities.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -188,10 +187,9 @@ public class EditorDropTarget implements DropTargetListener {
                     + data.getClass().getName());
 
             String insertData = null;
-            if (data instanceof InputStream) {
+            if (data instanceof InputStream is) {
                 // Plain text flavor
                 String charSet = selectedFlavor.getParameter("charset");
-                InputStream is = (InputStream) data;
                 byte[] bytes = new byte[is.available()];
                 is.read(bytes);
                 try {
@@ -218,7 +216,7 @@ public class EditorDropTarget implements DropTargetListener {
             }
             return false;
         } catch (Exception e) {
-            logger.error(StringUtils.exceptionToString(e));
+            logger.error(e.getLocalizedMessage(), e);
             return false;
         }
     }

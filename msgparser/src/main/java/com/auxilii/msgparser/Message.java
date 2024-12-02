@@ -28,7 +28,6 @@ import org.apache.poi.hmef.CompressedRTF;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -106,7 +105,7 @@ public class Message {
 
     private String bodyRTF;
 
-    private String bodyHtml;
+    private byte[] bodyHtml;
 
     /**
      * Email headers (if available)
@@ -188,10 +187,10 @@ public class Message {
                 this.setBodyText((String) property.getValue());
                 break;
             case PidTagBodyHtml:
-                this.setBodyHtml((String) property.getValue());
+                this.setBodyHtml(((String) property.getValue()).getBytes(StandardCharsets.UTF_8));
                 break;
             case PidTagHtml:
-                this.setBodyHtml(new String((byte[]) property.getValue(), StandardCharsets.UTF_8));
+                this.setBodyHtml((byte[]) property.getValue());
                 break;
             case PidTagRtfCompressed:
                 this.setCompressedRTF((byte[]) property.getValue());
@@ -235,8 +234,7 @@ public class Message {
             sb.append("Bcc: ").append(bccEmail).append('\n');
         }
         if (this.date != null) {
-            SimpleDateFormat formatter = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss z", Locale.ENGLISH);
-            sb.append("Date: ").append(formatter.format(this.date)).append('\n');
+            sb.append("Date: ").append(this.date.format(DateTimeFormatter.RFC_1123_DATE_TIME)).append('\n');
         }
         if (this.subject != null) {
             sb.append("Subject: ").append(this.subject).append('\n');
@@ -457,11 +455,11 @@ public class Message {
         this.bodyRTF = bodyRTF;
     }
 
-    public String getBodyHtml() {
+    public byte[] getBodyHtml() {
         return bodyHtml;
     }
 
-    public void setBodyHtml(String bodyHtml) {
+    public void setBodyHtml(byte[] bodyHtml) {
         this.bodyHtml = bodyHtml;
     }
 

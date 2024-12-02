@@ -4,7 +4,6 @@ import at.redeye.FrameWork.base.AutoLogger;
 import at.redeye.FrameWork.base.BaseDialog;
 import at.redeye.FrameWork.base.Root;
 import com.auxilii.msgparser.Message;
-import net.sourceforge.MSGViewer.rtfparser.ParseException;
 
 public class Internals extends BaseDialog {
 
@@ -17,7 +16,7 @@ public class Internals extends BaseDialog {
      * Creates new form Internals
      */
     public Internals(Root root, final Message message) {
-        super(root, root.MlM("Detail info") + ": " + (message.getSubject() != null ? message.getSubject() : root.getAppTitle()));
+        super(root, root.MlM("Detail info") + ": " + (message.getSubject() != null ? message.getSubject() : root.getAppName()));
 
         initComponents();
 
@@ -37,15 +36,14 @@ public class Internals extends BaseDialog {
     private String getText(Message message) {
         if (message.getBodyRTF() != null && message.getBodyRTF().contains("\\fromhtml")) {
             return new AutoLogger<>(Internals.class.getName(),
-                    () -> extractHTMLFromRTF(message.getBodyRTF())
+                    () -> ViewerHelper.extractHTMLFromRTF(message.getBodyRTF()).toString()
             ).resultOrElse(MlM(MESSAGE_UNPARSABLE_CODE));
         }
         if (message.getBodyHtml() != null) {
-            return message.getBodyHtml();
+            return ViewerHelper.toHtmlSource(message.getBodyHtml()).toString();
         }
         return MlM(MESSAGE_NOHTML_CODE);
     }
-
 
     @Override
     public String getUniqueDialogIdentifier() {
@@ -118,12 +116,4 @@ public class Internals extends BaseDialog {
     private javax.swing.JTextArea jTPlain;
     private javax.swing.JTextArea jTRTF;
     // End of variables declaration//GEN-END:variables
-
-    private static String extractHTMLFromRTF(String bodyText) throws ParseException {
-
-        HtmlFromRtf rtf2html = new HtmlFromRtf(bodyText);
-
-        return rtf2html.getHTML();
-    }
-
 }

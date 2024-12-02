@@ -11,16 +11,14 @@ import org.apache.logging.log4j.Logger;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
-public abstract class RecipientHeader extends HeaderParser {
+public abstract class RecipientHeader {
     private static final Logger LOGGER = LogManager.getLogger(RecipientHeader.class);
     private final RecipientType type;
 
     RecipientHeader(RecipientType type) {
-        super(type.toString());
         this.type = type;
     }
 
-    @Override
     public void parse(Message msg, String line) {
         LOGGER.debug("line: " + line);
         splitAttendees(line).forEach(msg::addRecipient);
@@ -29,7 +27,7 @@ public abstract class RecipientHeader extends HeaderParser {
     protected Stream<RecipientEntry> splitAttendees(String text) {
         return Arrays.stream(text.split(","))
                 .map(RecipientHeader::mailAddressFrom)
-                .filter(addr -> addr.getEmail().contains("@"))
+                .filter(addr -> addr.email().contains("@"))
                 .map(this::toRecipientEntry);
     }
 
@@ -47,8 +45,8 @@ public abstract class RecipientHeader extends HeaderParser {
 
     private RecipientEntry toRecipientEntry(MailAddress email) {
         RecipientEntry recipientEntry = new RecipientEntry();
-        recipientEntry.setEmail(email.getEmail());
-        recipientEntry.setName(email.getDisplayName());
+        recipientEntry.setEmail(email.email());
+        recipientEntry.setName(email.displayName());
         recipientEntry.setType(type);
         return recipientEntry;
     }

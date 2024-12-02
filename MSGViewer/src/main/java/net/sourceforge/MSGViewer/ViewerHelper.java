@@ -6,28 +6,23 @@ import at.redeye.FrameWork.base.Setup;
 import com.auxilii.msgparser.Message;
 import com.auxilii.msgparser.attachment.Attachment;
 import com.auxilii.msgparser.attachment.FileAttachment;
-import net.htmlparser.jericho.Attribute;
-import net.htmlparser.jericho.Attributes;
-import net.htmlparser.jericho.Source;
-import net.htmlparser.jericho.StartTag;
+import jakarta.activation.MimeType;
+import net.htmlparser.jericho.*;
 import net.sourceforge.MSGViewer.rtfparser.ParseException;
 import org.apache.commons.validator.routines.EmailValidator;
 
-import javax.activation.MimeType;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import static at.redeye.FrameWork.base.BaseDialog.logger;
+import static org.apache.commons.lang3.StringUtils.repeat;
 
 public class ViewerHelper {
 
-    private static final Pattern META_PATTERN = Pattern.compile("<meta\\s.*>", Pattern.CASE_INSENSITIVE);
     private final AttachmentRepository attachmentRepository;
 
     public ViewerHelper(Root root) {
@@ -50,55 +45,29 @@ public class ViewerHelper {
         return FrameWorkConfigDefinitions.OpenCommand.getConfigValue();
     }
 
-    static public String stripMetaTags(String html) {
-        html = META_PATTERN.matcher(html).replaceAll("");
-
-        StringBuilder body_text = new StringBuilder(html);
-        Source source = new Source(html);
-        source.fullSequentialParse();
-
-        for (StartTag tag : source.getAllStartTags("font")) {
-            // remove size="x"
-            Attributes atts = tag.getAttributes();
-            if (atts == null)
-                continue;
-
-            Attribute att = atts.get("size");
-
-            if (att != null) {
-                int start = att.getBegin();
-                int end = att.getEnd();
-
-                for (int i = start; i < end + 1; i++) {
-                    body_text.setCharAt(i, ' ');
-                }
-            }
-        }
-
-        System.out.println(body_text);
-
-        return body_text.toString();
+    public static Source extractHTMLFromRTF(String rtf) throws ParseException {
+        byte[] htmlBytes = new HtmlFromRtf(rtf).extractHtml();
+        return toHtmlSource(htmlBytes);
     }
 
+    public static Source toHtmlSource(byte[] htmlBytes) {
+        try (InputStream stream = new ByteArrayInputStream(htmlBytes)) {
+            return new Source(stream);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
 
-    public String extractHTMLFromRTF(String bodyText, Message message) throws ParseException {
-        HtmlFromRtf rtf2html = new HtmlFromRtf(bodyText);
-
-        String html = rtf2html.getHTML();
-
-        html = ViewerHelper.stripMetaTags(html);
-
+    public String prepareImages(Message message, Source html) {
         PrepareImages prep_images = new PrepareImages(attachmentRepository, message);
-
-        return prep_images.prepareImages(html);
+        return prep_images.prepareImages(stripMetaTags(html));
     }
 
     public Path extractUrl(URI uri, Message message) throws IOException {
         List<Attachment> attachments = message.getAttachments();
 
         for (Attachment att : attachments) {
-            if (att instanceof FileAttachment) {
-                FileAttachment fatt = (FileAttachment) att;
+            if (att instanceof FileAttachment fatt) {
 
                 Path content = attachmentRepository.getTempFile(fatt);
 
@@ -116,7 +85,7 @@ public class ViewerHelper {
             }
         }
 
-        return null;
+        return Path.of(uri.getPath());
     }
 
     public static boolean isValidEmail(String email) {
@@ -126,6 +95,32 @@ public class ViewerHelper {
 
     public static String printMailIconHtml() {
         return "<img border=0 align=\"baseline\" src=\"" + getMailIconFile() + "\"/>";
+    }
+
+    private static String stripMetaTags(Source html) {
+        StringBuilder mutableHtml = new StringBuilder(html);
+
+        html.getAllElements("meta").forEach(element -> removeSegment(mutableHtml, element));
+        html.getAllStartTags("font").forEach(tag -> removeSizeAttribute(mutableHtml, tag));
+
+        System.out.println(mutableHtml);
+        return mutableHtml.toString();
+    }
+
+    private static void removeSizeAttribute(StringBuilder mutableHtml, StartTag tag) {
+        Attributes atts = tag.getAttributes();
+        if (atts == null) return;
+
+        Attribute att = atts.get("size");
+        if (att == null) return;
+
+        removeSegment(mutableHtml, att);
+    }
+
+    private static void removeSegment(StringBuilder mutableHtml, Segment segment) {
+        int start = segment.getBegin();
+        int end = segment.getEnd();
+        mutableHtml.replace(start, end, repeat(' ', end - start));
     }
 
     private static URI getMailIconFile() {

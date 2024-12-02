@@ -1,11 +1,9 @@
 package at.redeye.FrameWork.base.prm.impl.gui;
 
 import at.redeye.FrameWork.base.BaseDialog;
-import at.redeye.FrameWork.base.DefaultCanClose;
 import at.redeye.FrameWork.base.Root;
 import at.redeye.FrameWork.base.Saveable;
 import at.redeye.FrameWork.base.bindtypes.DBStrukt;
-import at.redeye.FrameWork.base.prm.PrmCustomChecksInterface;
 import at.redeye.FrameWork.base.prm.PrmDefaultChecksInterface;
 import at.redeye.FrameWork.base.prm.PrmListener;
 import at.redeye.FrameWork.base.prm.bindtypes.DBConfig;
@@ -18,14 +16,15 @@ import at.redeye.FrameWork.widgets.helpwindow.HelpWin;
 import at.redeye.FrameWork.widgets.helpwindow.HelpWinHook;
 
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
-import java.util.Vector;
 
 public class Config extends BaseDialog implements Saveable, PrmListener {
 
     private static final long serialVersionUID = 1L;
-    private final Vector<DBStrukt> values = new Vector<>();
+    private final List<DBStrukt> values = new ArrayList<>();
     private final TableManipulator tm;
 
     /**
@@ -38,21 +37,19 @@ public class Config extends BaseDialog implements Saveable, PrmListener {
 
         DBConfig config = new DBConfig();
 
-        tm = new TableManipulator(root, jTContent, config);
+        tm = new TableManipulator(root.getSetup(), jTContent, config);
 
-        tm.hide(config.hist.lo_user);
-        tm.hide(config.hist.lo_zeit);
-        tm.hide(config.hist.an_zeit);
-        tm.hide(config.hist.an_user);
-        tm.hide(config.hist.ae_zeit);
-        tm.hide(config.hist.ae_user);
+        tm.hide(config.hist.lo_user,
+                config.hist.lo_zeit,
+                config.hist.an_zeit,
+                config.hist.an_user,
+                config.hist.ae_zeit,
+                config.hist.ae_user);
 
         tm.setEditable(config.value);
-        tm.setAutoCompleteForAllOfThisColl(config.value, false);
-
         tm.prepareTable();
 
-        feed_table();
+        reloadConfig();
 
         tm.autoResize();
 
@@ -60,18 +57,12 @@ public class Config extends BaseDialog implements Saveable, PrmListener {
         ConfigDefinitions.entries.values().forEach(c -> c.addPrmListener(this));
     }
 
-    private void feed_table() {
+    private void reloadConfig() {
 
         values.clear();
         tm.clear();
 
-        Collection<DBConfig> configs = ConfigDefinitions.entries.values();
-
-        for (DBConfig c : configs) {
-            String val = root.getSetup().getConfig(c.getConfigName(), c.getConfigValue());
-            c.descr.loadFromCopy(MlM(c.descr.getValue()));
-            c.setConfigValue(val);
-        }
+        Collection<DBConfig> configs = root.loadConfig();
 
         tm.addAll(configs);
         values.addAll(configs);
@@ -183,9 +174,16 @@ private void jBCancelActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
 
     @Override
     public boolean canClose() {
-        return DefaultCanClose.DefaultCanCloseWithTable(this, tm);
+        int ret = checkSave(tm);
+
+        if (ret == 1) {
+            ((Saveable) this).saveData();
+            return true;
+        }
+        return ret != -1;
     }
 
+    @Override
     public void saveData() {
         for (Integer i : tm.getEditedRows()) {
             DBConfig entry = (DBConfig) values.get(i);
@@ -193,27 +191,21 @@ private void jBCancelActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
         }
 
         root.saveSetup();
-        feed_table();
+        reloadConfig();
 
     }
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JTable jTContent;
     // End of variables declaration//GEN-END:variables
 
+    @Override
     public void onChange(PrmDefaultChecksInterface checks, PrmActionEvent event) {
         if(!checks.doChecks(event)) {
-          PrmErrUtil.displayPrmError(this, event.getParameterName().toString());
-          root.getSetup().setLocalConfig(event.getParameterName().toString(), event.getOldPrmValue().toString());
+            PrmErrUtil.displayPrmError(this, event.getParameterName());
+            root.getSetup().setLocalConfig(event.getParameterName().toString(), event.getOldPrmValue().toString());
 
-      }
+        }
     }
 
-    public void onChange(PrmCustomChecksInterface customChecks, PrmActionEvent event) {
-        if(!customChecks.doCustomChecks(event)) {
-          PrmErrUtil.displayPrmError(this, event.getParameterName().toString());
-          root.getSetup().setLocalConfig(event.getParameterName().toString(), event.getOldPrmValue().toString());
-
-      }
-    }
 }
 

@@ -2,17 +2,17 @@ package net.sourceforge.MSGViewer.factory.mbox;
 
 import at.redeye.FrameWork.utilities.StringUtils;
 import com.auxilii.msgparser.Message;
+import com.auxilii.msgparser.attachment.Attachment;
 import com.auxilii.msgparser.attachment.FileAttachment;
-import net.sourceforge.MSGViewer.factory.FileExtension;
+import jakarta.mail.*;
+import jakarta.mail.Message.RecipientType;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimePart;
+import jakarta.mail.internet.MimeUtility;
 import net.sourceforge.MSGViewer.factory.mbox.headers.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import javax.mail.*;
-import javax.mail.Message.RecipientType;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimePart;
-import javax.mail.internet.MimeUtility;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,7 +31,6 @@ public class JavaMailParser {
     private static final RecipientHeader TO_PARSER = new ToHeader();
     private static final RecipientHeader CC_PARSER = new CcHeader();
     private static final RecipientHeader BCC_PARSER = new BccHeader();
-    private static final DateHeader DATE_PARSER = new DateHeader();
     private static final Pattern CHARSET_PATTERN = Pattern.compile(".*;\\s*charset=.*");
     private final Path file;
 
@@ -40,7 +39,7 @@ public class JavaMailParser {
     }
 
     public Message parse() throws Exception {
-        javax.mail.Message jmsg = parseJMessage();
+        jakarta.mail.Message jmsg = parseJMessage();
 
         Message msg = new Message();
 
@@ -51,7 +50,7 @@ public class JavaMailParser {
         msg.setSubject(jmsg.getSubject());
 
         msg.setHeaders(getHeaders(jmsg.getAllHeaders()));
-        DATE_PARSER.parse(msg, getFirstHeader(jmsg.getHeader("Date")) );
+        DateHeader.parse(msg, getFirstHeader(jmsg.getHeader("Date")));
         msg.setMessageId(getFirstHeader(jmsg.getHeader("Message-Id")));
 
         msg.setBodyText("");
@@ -61,7 +60,7 @@ public class JavaMailParser {
         return msg;
     }
 
-    private javax.mail.Message parseJMessage() throws MessagingException, IOException {
+    private jakarta.mail.Message parseJMessage() throws MessagingException, IOException {
         try (InputStream stream = Files.newInputStream(file)) {
             Session session = Session.getInstance(System.getProperties());
             return new MimeMessage(session, stream);
@@ -93,40 +92,17 @@ public class JavaMailParser {
                 byte[] bytes = getContent(part);
 
                 String body = new String(bytes, getCharset(part.getContentType()));
+                LOGGER.debug(body);
 
                 if ( part.isMimeType("text/html") ) {
-                    msg.setBodyHtml(body);
-                    LOGGER.debug(msg.getBodyHtml());
+                    msg.setBodyHtml(bytes);
                 } else if ( part.isMimeType("text/rtf") ) {
                     msg.setBodyRTF(body);
-                    LOGGER.debug(msg.getBodyRTF());
                 } else {
                     msg.setBodyText(body);
-                    LOGGER.debug(msg.getBodyText());
                 }
             } else if (disp == null || disp.equalsIgnoreCase(Part.ATTACHMENT) || disp.equalsIgnoreCase(Part.INLINE)) {
-                // many mailers don't include a Content-Disposition
-
-                MimePart mpart = (MimePart) part;
-
-                FileAttachment att = new FileAttachment();
-                String filename = MimeUtility.decodeText(part.getFileName());
-                att.setMimeTag(getMime(part.getContentType()));
-                att.setFilename(filename);
-                att.setExtension(new FileExtension(filename).toString());
-
-                String cid = mpart.getContentID();
-                if( cid != null ) {
-                    cid = StringUtils.strip(cid, "<>");
-                    att.setContentId(cid);
-                }
-
-                if( att.getFilename() == null ) {
-                    att.setFilename("");
-                }
-
-                att.setData(getContent(part));
-
+                Attachment att = toAttachment((MimePart) part);
                 msg.addAttachment(att);
             } else {
                 LOGGER.warn("Unparseable part");
@@ -159,35 +135,6 @@ public class JavaMailParser {
         return "ASCII";
     }
 
-    private static byte[] getContent(Part mp) throws IOException, MessagingException {
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        try (InputStream in = mp.getInputStream()) {
-            in.transferTo(bos);
-        }
-        return bos.toByteArray();
-    }
-
-    private static String getMime(String content_type)
-    {
-        int idx = content_type.indexOf('\n');
-        if( idx < 0 ) {
-            return content_type;
-        }
-
-        String mime =  content_type.substring(0, idx).trim();
-
-        return StringUtils.strip_post(mime,";");
-    }
-
-    private static String getFirstHeader(String[] headers)
-    {
-        if( headers == null ) {
-            return "";
-        }
-
-        return headers[0];
-    }
-
     private static String getAddresses(Address[] addresses) {
         if (addresses == null) {
             return "";
@@ -200,21 +147,78 @@ public class JavaMailParser {
 
     private static String getHeaders(Enumeration<Header> allHeaders)
     {
-       StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder();
 
-       while( allHeaders.hasMoreElements() )
-       {
-           Header h = allHeaders.nextElement();
-           sb.append(h.getName());
-           sb.append(": ");
-           sb.append(h.getValue());
+        while (allHeaders.hasMoreElements()) {
+            Header h = allHeaders.nextElement();
+            sb.append(h.getName());
+            sb.append(": ");
+            sb.append(h.getValue());
 
-           if( allHeaders.hasMoreElements() ) {
-               sb.append("\r\n");
-           }
-       }
+            if (allHeaders.hasMoreElements()) {
+                sb.append("\r\n");
+            }
+        }
 
-       return sb.toString();
+        return sb.toString();
     }
 
+    private static String getFirstHeader(String[] headers) {
+        if (headers == null) {
+            return "";
+        }
+
+        return headers[0];
+    }
+
+    private static FileAttachment toAttachment(MimePart part) throws MessagingException, IOException {
+        FileAttachment att = new FileAttachment();
+
+        String mimeTag = partMimeTag(part);
+        att.setMimeTag(mimeTag);
+
+        String cid = partContentId(part);
+        att.setContentId(cid);
+
+        String filename = partFilename(part);
+        att.setLongFilename(filename);
+
+        att.setData(getContent(part));
+        return att;
+    }
+
+    private static String partMimeTag(Part part) throws MessagingException {
+        String content_type = part.getContentType();
+        int idx = content_type.indexOf('\n');
+        if (idx < 0) {
+            return content_type;
+        }
+
+        String mime = content_type.substring(0, idx).trim();
+        return StringUtils.strip_post(mime, ";");
+    }
+
+    private static String partContentId(MimePart mpart) throws MessagingException {
+        String cid = mpart.getContentID();
+        if (cid == null) {
+            return null;
+        }
+        return StringUtils.strip(cid, "<>");
+    }
+
+    private static String partFilename(Part part) throws MessagingException, UnsupportedEncodingException {
+        String filename = part.getFileName();
+        if (filename == null) {
+            return "unknown";
+        }
+        return MimeUtility.decodeText(filename);
+    }
+
+    private static byte[] getContent(Part mp) throws IOException, MessagingException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        try (InputStream in = mp.getInputStream()) {
+            in.transferTo(bos);
+        }
+        return bos.toByteArray();
+    }
 }

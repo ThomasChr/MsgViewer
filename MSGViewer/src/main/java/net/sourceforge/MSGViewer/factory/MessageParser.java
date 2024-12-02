@@ -7,6 +7,8 @@ import net.sourceforge.MSGViewer.factory.mbox.JavaMailParser;
 import java.io.IOException;
 import java.nio.file.Path;
 
+import static org.apache.commons.io.FilenameUtils.getExtension;
+
 public class MessageParser {
 
     private final Path file;
@@ -16,18 +18,13 @@ public class MessageParser {
     }
 
     public Message parseMessage() throws Exception {
-        FileExtension extention = new FileExtension(file);
+        String extention = getExtension(file.toString());
 
-        switch (extention.toString()) {
-            case "msg":
-            case "oft":
-                return parseMsgFile();
-            case "mbox":
-            case "eml":
-                return parseJavaMailFile();
-            default:
-                throw new Exception("Extension '" + extention + "' not supported");
-        }
+        return switch (extention) {
+            case "msg", "oft" -> parseMsgFile();
+            case "mbox", "eml" -> parseJavaMailFile();
+            default -> throw new Exception("Extension '" + extention + "' not supported");
+        };
     }
 
     private Message parseMsgFile() throws IOException {

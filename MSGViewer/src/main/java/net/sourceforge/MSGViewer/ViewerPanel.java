@@ -13,13 +13,13 @@ import com.auxilii.msgparser.RecipientType;
 import com.auxilii.msgparser.attachment.Attachment;
 import com.auxilii.msgparser.attachment.FileAttachment;
 import com.auxilii.msgparser.attachment.MsgAttachment;
+import jakarta.activation.MimeType;
+import jakarta.activation.MimeTypeParseException;
 import net.htmlparser.jericho.Source;
 import net.htmlparser.jericho.StartTag;
 import net.sourceforge.MSGViewer.factory.MessageParser;
 import net.sourceforge.MSGViewer.factory.MessageSaver;
 
-import javax.activation.MimeType;
-import javax.activation.MimeTypeParseException;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.event.HyperlinkEvent;
@@ -89,7 +89,7 @@ public class ViewerPanel extends JPanel implements Printable, MessageView {
         jRHTML.setSelected(!rtfFormat);
 
         jSplitPane.setDividerLocation(Integer.parseInt(root.getSetup().getConfig("DividerLocation", "150")));
-        header.setText(parent.MlM("Drag a msg file into this window"));
+        header.setText("Drag a msg file into this window");
     }
 
     public void setOpenNewMailInterface(OpenNewMailInterface open_new_mail_handler) {
@@ -255,7 +255,7 @@ public class ViewerPanel extends JPanel implements Printable, MessageView {
 
         EditorKit editor = body.getEditorKit();
 
-        if (editor instanceof HTMLEditorKit) {
+        if (editor instanceof HTMLEditorKit html_editor) {
 
             System.out.println("Value: " + jSFontSize.getValue());
 
@@ -268,7 +268,6 @@ public class ViewerPanel extends JPanel implements Printable, MessageView {
                     .map(t -> t + rule)
                     .collect(joining());
 
-            HTMLEditorKit html_editor = (HTMLEditorKit) editor;
             StyleSheet sheet = html_editor.getStyleSheet();
             sheet.addRule(tags);
 
@@ -312,31 +311,33 @@ public class ViewerPanel extends JPanel implements Printable, MessageView {
 
         Content content = bodyText();
 
-        logger.trace(content.text);
+        logger.trace(content.text());
 
-        body.setContentType(content.type);
-        body.setText(content.text);
+        body.setContentType(content.type());
+        body.setText(content.text());
         body.setCaretPosition(0);
     }
 
     private Content bodyText() {
-        if (jRRTF.isSelected() && isNotEmpty(message.getBodyRTF())) {
-            if (message.getBodyRTF().contains("\\fromhtml")) {
+        String bodyRTF = message.getBodyRTF();
+        if (jRRTF.isSelected() && isNotEmpty(bodyRTF)) {
+            if (bodyRTF.contains("\\fromhtml")) {
                 return new AutoMBox<>(MainWin.class.getName(), () -> {
                     logger.info("extracting HTML data from RTF Code");
 
                     if (logger.isTraceEnabled()) {
-                        logger.trace("\n" + StringUtils.addLineNumbers(message.getBodyRTF()));
+                        logger.trace("\n" + StringUtils.addLineNumbers(bodyRTF));
                     }
 
-                    return new Content("text/html", helper.extractHTMLFromRTF(message.getBodyRTF(), message));
-                }).resultOrElse(new Content("text/rtf", message.getBodyRTF()));
+                    Source source = ViewerHelper.extractHTMLFromRTF(bodyRTF);
+                    return new Content("text/html", helper.prepareImages(message, source));
+                }).resultOrElse(new Content("text/rtf", bodyRTF));
             }
-            return new Content("text/rtf", message.getBodyRTF());
+            return new Content("text/rtf", bodyRTF);
         }
         if (message.getBodyHtml() != null) {
-            PrepareImages prep_images = new PrepareImages(attachmentRepository, message);
-            return new Content("text/html", prep_images.prepareImages(ViewerHelper.stripMetaTags(message.getBodyHtml())));
+            Source source = ViewerHelper.toHtmlSource(message.getBodyHtml());
+            return new Content("text/html", helper.prepareImages(message, source));
         }
         return new Content("text/plain", message.getBodyText());
     }
@@ -354,17 +355,16 @@ public class ViewerPanel extends JPanel implements Printable, MessageView {
 
         final String protocol = uri.getScheme();
 
-        if (!protocol.equals("file")) {
+        if (protocol.equals("file")) {
+            openLocalFile(uri);
+        } else {
             open(uri.toString());
-            return;
         }
 
+    }
+
+    private void openLocalFile(URI uri) throws IOException {
         Path content = helper.extractUrl(uri, message);
-
-        if (content == null) {
-            // maybe the url points to a local directory
-            content = Path.of(uri.getPath());
-        }
 
         if (ViewerHelper.is_mail_message(content.toString())) {
 
@@ -374,7 +374,6 @@ public class ViewerPanel extends JPanel implements Printable, MessageView {
         } else {
             open(content.toString());
         }
-
     }
 
     private void open(String path) throws IOException {
@@ -524,7 +523,7 @@ public class ViewerPanel extends JPanel implements Printable, MessageView {
             sb.append("<img border=0 src=\"").append(thumbnailFile.toURI()).append("\"/> ");
         }
 
-        if (ViewerHelper.is_mail_message(att.getFilename())) {
+        if (ViewerHelper.is_mail_message(att.getLongFilename())) {
             if (!Files.exists(content)) {
                 write(content, att.getData());
             }
@@ -538,7 +537,7 @@ public class ViewerPanel extends JPanel implements Printable, MessageView {
     }
 
     private String printMsgAttachment(MsgAttachment att) {
-        final Message msg = att.getMessage();
+        final Message msg = att.message();
 
         Path sub_file = attachmentRepository.getTempFile(att);
 
